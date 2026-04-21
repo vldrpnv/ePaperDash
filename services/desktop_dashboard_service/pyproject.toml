@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "epaper-dashboard-service"
+version = "0.1.0"
+description = "Desktop dashboard image generator and MQTT publisher for ePaperDash"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "CairoSVG==2.9.0",
+  "Pillow==11.2.1",
+  "paho-mqtt==2.1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest==8.3.5",
+]
+
+[project.scripts]
+epaper-dashboard-service = "epaper_dashboard_service.cli:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

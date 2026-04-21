@@ -7,6 +7,10 @@ The device connects to a WiFi network, subscribes to an MQTT topic that carries
 a dashboard image, renders the image on the 800 × 480 ePaper display, and then
 deep-sleeps for 60 seconds before repeating the cycle.
 
+A companion Python desktop service now lives in `services/desktop_dashboard_service`.
+It generates dashboard images from pluggable sources, renders an SVG layout, and
+publishes the 1-bit dashboard payload to MQTT for the firmware.
+
 ---
 
 ## Hardware
