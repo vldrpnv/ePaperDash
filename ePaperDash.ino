@@ -227,17 +227,22 @@ void setup()
     bool gotImage = false;
 
     if (wifiConnect() && mqttConnect()) {
-        mqttClient.subscribe(MQTT_TOPIC_IMAGE);
-        Serial.printf("[MQTT] Subscribed to \"%s\"\n", MQTT_TOPIC_IMAGE);
+        bool subscribed = mqttClient.subscribe(MQTT_TOPIC_IMAGE);
+        if (subscribed) {
+            Serial.printf("[MQTT] Subscribed to \"%s\"\n", MQTT_TOPIC_IMAGE);
 
-        // Poll the client until the retained message arrives or timeout
-        unsigned long waitStart = millis();
-        while (!imageReceived &&
-               (millis() - waitStart < MQTT_MESSAGE_TIMEOUT_MS)) {
-            mqttClient.loop();
-            delay(10);
+            // Poll the client until the retained message arrives or timeout
+            unsigned long waitStart = millis();
+            while (!imageReceived &&
+                   (millis() - waitStart < MQTT_MESSAGE_TIMEOUT_MS)) {
+                mqttClient.loop();
+                delay(10);
+            }
+            gotImage = imageReceived;
+        } else {
+            Serial.printf("[ERROR] Failed to subscribe to \"%s\" (MQTT state: %d)\n",
+                          MQTT_TOPIC_IMAGE, mqttClient.state());
         }
-        gotImage = imageReceived;
     }
 
     if (gotImage) {
