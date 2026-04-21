@@ -11,6 +11,8 @@ A companion Python desktop service now lives in `services/desktop_dashboard_serv
 It generates dashboard images from pluggable sources, renders an SVG layout, and
 publishes the 1-bit dashboard payload to MQTT for the firmware.
 
+Repository-level architecture notes now live in `architecture/`, and service-specific decisions live in `services/desktop_dashboard_service/architecture/`.
+
 ---
 
 ## Hardware
