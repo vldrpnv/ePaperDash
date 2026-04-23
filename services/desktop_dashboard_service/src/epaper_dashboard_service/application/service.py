@@ -69,5 +69,29 @@ class DashboardApplicationService:
 
 
 def _encode_to_epaper_payload(image: Image.Image) -> bytes:
+    expected_width = 800
+    expected_height = 480
+
+    if image.size != (expected_width, expected_height):
+        raise ValueError(
+            "E-paper payload requires an image of "
+            f"{expected_width}x{expected_height} pixels, got {image.width}x{image.height}"
+        )
+
+    if image.width % 8 != 0:
+        raise ValueError(
+            f"E-paper payload width must be divisible by 8 for 1-bpp packing, got {image.width}"
+        )
+
     monochrome = image.convert("1")
-    return monochrome.tobytes()
+    payload = monochrome.tobytes()
+    expected_payload_size = expected_width * expected_height // 8
+
+    if len(payload) != expected_payload_size:
+        raise ValueError(
+            "E-paper payload must be exactly "
+            f"{expected_payload_size} bytes for a {expected_width}x{expected_height} 1-bpp image, "
+            f"got {len(payload)} bytes"
+        )
+
+    return payload
