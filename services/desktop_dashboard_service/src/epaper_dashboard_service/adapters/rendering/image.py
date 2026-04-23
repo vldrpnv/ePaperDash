@@ -23,7 +23,7 @@ class ImagePlacementRenderer(RendererPlugin):
         height = int(cfg.get("height", 200))
 
         fitted = _resize_to_fit(data.image, width, height)
-        return (ImagePlacement(image=fitted, x=x, y=y, width=width, height=height),)
+        return (ImagePlacement(image=fitted, x=x, y=y),)
 
 
 def _resize_to_fit(image: Image.Image, width: int, height: int) -> Image.Image:

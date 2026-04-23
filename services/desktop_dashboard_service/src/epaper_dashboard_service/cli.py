@@ -23,7 +23,7 @@ def main() -> int:
     args = parser.parse_args()
 
     configuration = load_configuration(args.config.resolve())
-    interval_seconds = args.interval if args.interval is not None else configuration.service.interval_seconds
+    interval_seconds = args.interval or configuration.service.interval_seconds
     application = build_application(configuration.mqtt)
 
     print(f"Starting dashboard service (interval={interval_seconds}s)")
