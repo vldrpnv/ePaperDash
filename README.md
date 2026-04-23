@@ -102,12 +102,9 @@ import numpy as np
 
 WIDTH, HEIGHT = 800, 480
 
-# Convert any image to 1-bpp 800×480 bitmap (white=0, black=1)
+# Convert any image to 1-bpp 800×480 bitmap
 img = Image.open("dashboard.png").convert("1").resize((WIDTH, HEIGHT))
 pixels = np.array(img, dtype=np.uint8)
-
-# Invert so that black pixels → 1 and white pixels → 0
-pixels = 1 - pixels
 
 # Pack 8 pixels into each byte (MSB first)
 payload = np.packbits(pixels.flatten()).tobytes()  # 48 000 bytes
