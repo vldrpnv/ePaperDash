@@ -3,7 +3,10 @@ from __future__ import annotations
 from pathlib import Path
 
 from PIL import Image
+import pytest
 
+from epaper_dashboard_service.adapters.rendering.image import ImagePlacementRenderer
+from epaper_dashboard_service.adapters.sources.random_image import RandomImageSourcePlugin
 from epaper_dashboard_service.application.service import DashboardApplicationService, PluginRegistry, _encode_to_epaper_payload
 from epaper_dashboard_service.domain.models import DashboardConfiguration, LayoutConfig, MqttConfig, PanelDefinition
 from epaper_dashboard_service.domain.ports import DashboardPublisher, LayoutRenderer, RendererPlugin, SourcePlugin
@@ -109,4 +112,55 @@ def test_application_service_generate_does_not_publish() -> None:
     service.generate(configuration)
 
     assert publisher.payload == b"", "generate() must not publish"
+
+
+def test_application_service_composites_random_image_panel(tmp_path: Path) -> None:
+    """The service must composite an ImagePlacement from the random_image panel onto the output."""
+    # Create a small all-black image in the pool directory
+    pool_dir = tmp_path / "pool"
+    pool_dir.mkdir()
+    black_img = Image.new("RGB", (50, 30), color=0)
+    black_img.save(pool_dir / "photo.png")
+
+    publisher = FakePublisher()
+    service = DashboardApplicationService(
+        registry=PluginRegistry(
+            sources=(FakeSource(), RandomImageSourcePlugin()),
+            renderers=(FakeRenderer(), ImagePlacementRenderer()),
+        ),
+        layout_renderer=FakeLayoutRenderer(),
+        publisher=publisher,
+    )
+    # Image box: top-left corner at (0, 0), 80x60 — large enough to verify compositing
+    configuration = DashboardConfiguration(
+        layout=LayoutConfig(template="/tmp/layout.svg", width=800, height=480),
+        mqtt=MqttConfig(host="localhost", port=1883, topic="epaper/image"),
+        panels=(
+            PanelDefinition(
+                source="calendar",
+                renderer="calendar_text",
+                slot="calendar",
+                source_config={"value": "Tuesday"},
+                renderer_config={},
+            ),
+            PanelDefinition(
+                source="random_image",
+                renderer="random_image",
+                slot="image_pool",
+                source_config={"directory": str(pool_dir)},
+                renderer_config={"x": 0, "y": 0, "width": 80, "height": 60},
+            ),
+        ),
+    )
+
+    result = service.generate(configuration)
+
+    # The composited image should still be 800x480
+    assert result.image.size == (800, 480)
+    # The top-left 80x60 region should contain the (black) image that was pasted;
+    # at least the centre pixel of the box should be black (grayscale < 128).
+    centre_pixel = result.image.getpixel((40, 30))
+    assert centre_pixel < 128, (
+        "Centre of the composited image box should be dark (black image was pasted there)"
+    )
 
