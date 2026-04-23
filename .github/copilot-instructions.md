@@ -43,5 +43,6 @@ Before making changes, read:
 
 ## Repository-specific notes
 
+- There is no committed automated test or CI harness yet; see **Harness state** above for the expected workaround.
 - Favor small, explicit changes over broad abstraction.
 - Keep configuration in `config.h` unless a documented decision changes that boundary.
