@@ -29,7 +29,7 @@ Before making changes, read:
 - `docs/architecture/README.md` is the canonical navigation index for architecture context.
 - Use the summary tables in that file to decide which ADRs and design decisions must be loaded for the current task.
 - There is currently no committed automated test or CI harness in this repository.
-- Until a harness exists, changes should include explicit acceptance criteria first and either:
+- Until an automated test harness exists, changes should include explicit acceptance criteria first and either:
   - tests added first when a seam exists, or
   - a documented missing test seam plus a concrete manual verification plan.
 
