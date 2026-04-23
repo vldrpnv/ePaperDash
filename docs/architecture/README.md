@@ -1,6 +1,6 @@
 # Architecture knowledge base
 
-This directory captures the current architectural and technical design decisions for `ePaperDash`, derived from the current code and the implementation history that introduced the firmware.
+This directory captures the current architectural and technical design decisions for `ePaperDash` as reflected by the current codebase.
 
 ## Structure
 
