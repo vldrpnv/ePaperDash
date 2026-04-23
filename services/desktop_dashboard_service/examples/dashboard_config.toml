@@ -35,3 +35,14 @@ longitude = 13.41
 timezone = "Europe/Berlin"
 [panels.renderer_config]
 font-size = "34"
+
+[[panels]]
+source = "mvg_departures"
+renderer = "train_departures_text"
+slot = "trains"
+[panels.source_config]
+station_name = "Eichenau"
+limit = 3
+[panels.renderer_config]
+font-family = "Arial, sans-serif"
+fill = "black"

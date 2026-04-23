@@ -3,4 +3,8 @@
   <text id="calendar" x="50" y="110" font-family="Arial, sans-serif" font-size="48" fill="black" />
   <line x1="40" y1="150" x2="760" y2="150" stroke="black" stroke-width="2" />
   <text id="weather" x="50" y="220" font-family="Arial, sans-serif" font-size="34" fill="black" />
+  <line x1="40" y1="300" x2="760" y2="300" stroke="black" stroke-width="2" />
+  <!-- trains slot: bounding box 720×170 px; font-size is auto-calculated to fit -->
+  <text id="trains" x="40" y="320" font-family="Arial, sans-serif" fill="black"
+        data-bbox-width="720" data-bbox-height="150" />
 </svg>

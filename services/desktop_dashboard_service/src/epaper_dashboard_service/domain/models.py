@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import datetime
 from typing import Any
 
 
@@ -24,10 +25,38 @@ class WeatherForecast:
 
 
 @dataclass(frozen=True)
+class TextSpan:
+    """A fragment of a line with optional inline formatting."""
+
+    text: str
+    bold: bool = False
+    strikethrough: bool = False
+
+
+# A rich line is a sequence of TextSpan fragments; a plain line is a str.
+RichLine = tuple[TextSpan, ...]
+
+
+@dataclass(frozen=True)
 class DashboardTextBlock:
     slot: str
-    lines: tuple[str, ...]
+    lines: tuple[str | RichLine, ...]
     attributes: dict[str, str] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class TrainDeparture:
+    line: str
+    destination: str
+    scheduled_time: datetime
+    actual_time: datetime | None
+    cancelled: bool
+
+
+@dataclass(frozen=True)
+class TrainDepartures:
+    station_name: str
+    entries: tuple[TrainDeparture, ...]
 
 
 @dataclass(frozen=True)

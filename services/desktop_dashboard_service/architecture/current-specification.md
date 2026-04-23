@@ -71,8 +71,10 @@ A renderer plugin exposes a unique `name`, declares `supported_type`, and return
 
 - Panels target SVG elements by `slot` id.
 - The current SVG renderer only supports `<text>` targets.
-- Multi-line content is emitted as nested `<tspan>` elements.
+- Plain lines are strings; rich lines are `tuple[TextSpan, ...]` where each `TextSpan` carries optional `bold` and `strikethrough` flags.  Each span is emitted as a nested `<tspan>` with the corresponding SVG attributes.
+- Multi-line content (both plain and rich) is emitted as nested `<tspan>` elements with `dy="1.2em"` for each subsequent line.
 - Renderer attributes from `DashboardTextBlock.attributes` are passed through verbatim to the target `<text>` element and overwrite any existing attributes with the same names.
+- When a `<text>` element in the SVG template carries both `data-bbox-width` and `data-bbox-height` attributes, the renderer calculates and sets `font-size` automatically so that all lines fit within the declared bounding box.  Any `font-size` set in `renderer_config` takes precedence over the auto-calculated value.
 
 ## Built-in plugin inventory
 
@@ -80,11 +82,13 @@ A renderer plugin exposes a unique `name`, declares `supported_type`, and return
 
 - `calendar`
 - `weather_forecast` backed by Open-Meteo
+- `mvg_departures` backed by the MVG FIB v2 API (no registration required)
 
 ### Renderers
 
 - `calendar_text`
 - `weather_text`
+- `train_departures_text`
 
 ## Output contract
 
