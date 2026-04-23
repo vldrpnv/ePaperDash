@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+from PIL import Image
+
 
 DashboardData = Any
 
@@ -28,6 +30,24 @@ class DashboardTextBlock:
     slot: str
     lines: tuple[str, ...]
     attributes: dict[str, str] = field(default_factory=dict)
+
+
+@dataclass
+class RandomImageData:
+    """Data returned by the random-image source plugin. image is None when the pool is empty."""
+
+    image: Image.Image | None
+
+
+@dataclass
+class ImagePlacement:
+    """A PIL image to be composited onto the dashboard at a given position."""
+
+    image: Image.Image
+    x: int
+    y: int
+    width: int
+    height: int
 
 
 @dataclass(frozen=True)
@@ -60,7 +80,15 @@ class MqttConfig:
 
 
 @dataclass(frozen=True)
+class ServiceConfig:
+    """Runtime-loop settings for the cyclic dashboard service."""
+
+    interval_seconds: int = 300
+
+
+@dataclass(frozen=True)
 class DashboardConfiguration:
     layout: LayoutConfig
     mqtt: MqttConfig
     panels: tuple[PanelDefinition, ...]
+    service: ServiceConfig = field(default_factory=ServiceConfig)
