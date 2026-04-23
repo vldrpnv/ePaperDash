@@ -76,13 +76,16 @@ class MvgDepartureSourcePlugin(SourcePlugin):
 
 
 def _parse_departure(raw: dict[str, Any]) -> TrainDeparture:
-    line = str(raw.get("label", raw.get("line", {}).get("label", "?")) if not isinstance(raw.get("line"), str) else raw.get("line", "?"))
-    if isinstance(raw.get("line"), dict):
-        line = str(raw["line"].get("label", "?"))
+    line_field = raw.get("line")
+    if isinstance(line_field, dict):
+        line = str(line_field.get("label", "?"))
     else:
         line = str(raw.get("label", "?"))
 
-    destination = str(raw.get("destination", raw.get("line", {}).get("destination", "") if isinstance(raw.get("line"), dict) else ""))
+    if isinstance(line_field, dict):
+        destination = str(line_field.get("destination", ""))
+    else:
+        destination = str(raw.get("destination", ""))
 
     planned = _parse_time(raw.get("plannedDepartureTime") or raw.get("departureTimePlanned"))
     actual_raw = raw.get("realtimeDepartureTime") or raw.get("departureTimeReal")
