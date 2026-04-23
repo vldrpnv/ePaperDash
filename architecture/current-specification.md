@@ -10,9 +10,11 @@ The repository currently contains two cooperating parts:
 ## System contract
 
 - The firmware consumes a retained MQTT message containing a raw 1-bit, 800 × 480 bitmap payload.
-- The payload size is fixed at 48,000 bytes.
+- The payload is packed in row-major order: rows are encoded top-to-bottom, and within each row pixels are encoded left-to-right.
+- Each byte encodes 8 horizontal pixels; the leftmost pixel in the group is stored in the most-significant bit and the rightmost pixel in the least-significant bit.
+- The payload size is fixed at 48,000 bytes, with no per-row padding (`800 / 8 = 100` bytes per row, `100 × 480 = 48,000` bytes total).
 - Bit value `0` is rendered as black and `1` as white.
-- The desktop service is responsible for producing payloads that match that contract.
+- The desktop service is responsible for producing payloads that match that exact packing and rendering contract.
 
 ## Firmware behaviour
 
