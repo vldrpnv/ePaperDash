@@ -39,6 +39,7 @@
 #include <GxEPD2_BW.h>
 #include <SPI.h>
 #include "config.h"
+#include "initial_image.h"
 
 // ---------------------------------------------------------------------------
 // Display object
@@ -167,6 +168,34 @@ static bool mqttConnect()
 }
 
 // ---------------------------------------------------------------------------
+// Render the initial (built-in) image from PROGMEM on first boot
+// ---------------------------------------------------------------------------
+static void showInitialImage()
+{
+    Serial.println("[EPD] Displaying initial image…");
+    display.init(115200, true, 2, false);
+    display.setRotation(0);
+    display.setFullWindow();
+
+    display.firstPage();
+    do {
+        display.fillScreen(GxEPD_WHITE);
+        display.drawBitmap(0, 0, INITIAL_IMAGE,
+                           DISPLAY_WIDTH, DISPLAY_HEIGHT,
+                           GxEPD_BLACK);
+    } while (display.nextPage());
+
+    display.powerOff();
+
+    // Record the CRC of the initial image so it is not re-rendered on the
+    // next wake cycle unless a different image arrives via MQTT.
+    memcpy_P(imageBuffer, INITIAL_IMAGE, IMAGE_BYTES);
+    lastImageCrc = crc32(imageBuffer, IMAGE_BYTES);
+
+    Serial.println("[EPD] Initial image displayed");
+}
+
+// ---------------------------------------------------------------------------
 // Render the image buffer on the ePaper display
 // ---------------------------------------------------------------------------
 static void showImage()
@@ -222,6 +251,12 @@ void setup()
         Serial.println("[ERROR] Failed to allocate image buffer – not enough heap");
         goToSleep();
         return;
+    }
+
+    // On the very first boot (lastImageCrc == 0) show the built-in initial
+    // image immediately, before attempting a WiFi connection.
+    if (lastImageCrc == 0) {
+        showInitialImage();
     }
 
     bool gotImage = false;
