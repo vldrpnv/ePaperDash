@@ -20,6 +20,13 @@ class OpenMeteoWeatherSourcePlugin(SourcePlugin):
         self._fetcher = fetcher or _fetch_json
 
     def fetch(self, config: dict[str, object]) -> WeatherForecast:
+        missing_keys = [key for key in ("latitude", "longitude") if key not in config]
+        if missing_keys:
+            missing_keys_text = ", ".join(missing_keys)
+            raise ValueError(
+                f"{self.name} source requires config value(s): {missing_keys_text}"
+            )
+
         location_name = str(config.get("location_name", "Unknown location"))
         query = urlencode(
             {
