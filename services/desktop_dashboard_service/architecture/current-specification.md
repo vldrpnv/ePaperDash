@@ -72,7 +72,7 @@ A renderer plugin exposes a unique `name`, declares `supported_type`, and return
 - Panels target SVG elements by `slot` id.
 - The current SVG renderer only supports `<text>` targets.
 - Multi-line content is emitted as nested `<tspan>` elements.
-- Renderer attributes may override selected text styling attributes.
+- Renderer attributes from `DashboardTextBlock.attributes` are passed through verbatim to the target `<text>` element and overwrite any existing attributes with the same names.
 
 ## Built-in plugin inventory
 
