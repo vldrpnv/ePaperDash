@@ -2,6 +2,8 @@
 
 Python service that builds dashboard images from pluggable data sources, renders them into an SVG layout, converts the result into the 1-bit payload expected by the firmware, and publishes it over MQTT.
 
+Architecture notes, ADRs, and the current specification live in `architecture/`.
+
 ## Highlights
 
 - Python 3.12 service with domain-driven and hexagonal structure

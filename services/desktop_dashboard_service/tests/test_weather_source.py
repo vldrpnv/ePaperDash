@@ -39,6 +39,6 @@ def test_weather_source_validates_required_config_keys() -> None:
 
     with pytest.raises(
         ValueError,
-        match="weather_forecast source requires config value\\(s\\): latitude, longitude",
+        match=r"weather_forecast source requires config value\(s\): latitude, longitude",
     ):
         plugin.fetch({})
