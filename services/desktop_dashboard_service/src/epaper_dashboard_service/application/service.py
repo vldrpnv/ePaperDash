@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import dataclasses
 from dataclasses import dataclass
 from pathlib import Path
 
 from PIL import Image
 
+from epaper_dashboard_service.adapters.layout.svg import extract_image_slots
 from epaper_dashboard_service.domain.models import (
     DashboardConfiguration,
     DashboardTextBlock,
@@ -48,7 +50,18 @@ class DashboardApplicationService:
         text_blocks: list[DashboardTextBlock] = []
         image_placements: list[ImagePlacement] = []
 
+        # Read image-slot geometry declared in the SVG template.  These values are merged
+        # into renderer_config so that image panels can be positioned purely from the SVG.
+        svg_image_slots = extract_image_slots(Path(configuration.layout.template))
+
         for panel in configuration.panels:
+            # If the SVG defines geometry for this slot, merge it into renderer_config.
+            # SVG geometry takes precedence over any matching keys in the TOML config.
+            if panel.slot in svg_image_slots:
+                panel = dataclasses.replace(
+                    panel,
+                    renderer_config={**panel.renderer_config, **svg_image_slots[panel.slot]},
+                )
             source = self._registry.get_source(panel.source)
             renderer = self._registry.get_renderer(panel.renderer)
             data = source.fetch(panel.source_config)

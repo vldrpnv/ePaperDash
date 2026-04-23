@@ -5,6 +5,7 @@ from pathlib import Path
 from PIL import Image
 import pytest
 
+from epaper_dashboard_service.adapters.layout.svg import SvgLayoutRenderer
 from epaper_dashboard_service.adapters.rendering.image import ImagePlacementRenderer
 from epaper_dashboard_service.adapters.sources.random_image import RandomImageSourcePlugin
 from epaper_dashboard_service.application.service import DashboardApplicationService, PluginRegistry, _encode_to_epaper_payload
@@ -163,4 +164,53 @@ def test_application_service_composites_random_image_panel(tmp_path: Path) -> No
     assert centre_pixel < 128, (
         "Centre of the composited image box should be dark (black image was pasted there)"
     )
+
+
+def test_application_service_reads_image_slot_geometry_from_svg(tmp_path: Path) -> None:
+    """When <image id="..."> is present in the SVG template, its geometry must drive placement
+    even when renderer_config carries no x/y/width/height values."""
+    # SVG declares a 80x60 box at (50, 50)
+    template = tmp_path / "layout.svg"
+    template.write_text(
+        """<svg xmlns="http://www.w3.org/2000/svg" width="800" height="480">
+          <rect width="800" height="480" fill="white" />
+          <image id="image_pool" x="50" y="50" width="80" height="60" />
+        </svg>""",
+        encoding="utf-8",
+    )
+
+    pool_dir = tmp_path / "pool"
+    pool_dir.mkdir()
+    black_img = Image.new("RGB", (50, 30), color=0)
+    black_img.save(pool_dir / "photo.png")
+
+    publisher = FakePublisher()
+    service = DashboardApplicationService(
+        registry=PluginRegistry(
+            sources=(RandomImageSourcePlugin(),),
+            renderers=(ImagePlacementRenderer(),),
+        ),
+        layout_renderer=SvgLayoutRenderer(),
+        publisher=publisher,
+    )
+    configuration = DashboardConfiguration(
+        layout=LayoutConfig(template=str(template), width=800, height=480),
+        mqtt=MqttConfig(host="localhost", port=1883, topic="epaper/image"),
+        panels=(
+            PanelDefinition(
+                source="random_image",
+                renderer="random_image",
+                slot="image_pool",
+                source_config={"directory": str(pool_dir)},
+                renderer_config={},  # no x/y/width/height — must come from SVG
+            ),
+        ),
+    )
+
+    result = service.generate(configuration)
+
+    assert result.image.size == (800, 480)
+    # Centre of the 80x60 box at (50, 50) is (90, 80); the black image should be there.
+    centre_pixel = result.image.getpixel((90, 80))
+    assert centre_pixel < 128, "Centre of SVG-declared image box should be dark"
 

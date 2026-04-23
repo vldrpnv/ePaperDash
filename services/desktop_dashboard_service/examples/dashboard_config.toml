@@ -46,7 +46,3 @@ slot = "image_pool"
 [panels.source_config]
 directory = "./image_samples"
 [panels.renderer_config]
-x = 480
-y = 20
-width = 300
-height = 200
