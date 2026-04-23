@@ -23,7 +23,7 @@
  * ------------
  *   Raw 1-bit-per-pixel bitmap, 800 × 480 pixels, MSB-first, row-major.
  *   Total payload size: 800 × 480 / 8 = 48 000 bytes.
- *   Pixel value 0 → black,  1 → white  (GxEPD_BLACK convention).
+ *   Pixel value 1 → black,  0 → white.
  *
  * Required libraries (install via Arduino Library Manager)
  * ---------------------------------------------------------

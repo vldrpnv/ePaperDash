@@ -88,7 +88,7 @@ configured) containing a raw **1-bit-per-pixel bitmap**:
 | Width × Height | 800 × 480 pixels |
 | Bits per pixel | 1 (MSB first) |
 | Payload size | **48 000 bytes** (800 × 480 ÷ 8) |
-| Pixel encoding | `0` = black, `1` = white |
+| Pixel encoding | `1` = black, `0` = white |
 
 The device only refreshes the display when the image CRC changes, avoiding
 unnecessary e-ink wear.
