@@ -23,7 +23,7 @@
  * ------------
  *   Raw 1-bit-per-pixel bitmap, 800 × 480 pixels, MSB-first, row-major.
  *   Total payload size: 800 × 480 / 8 = 48 000 bytes.
- *   Pixel value 0 → black,  1 → white  (GxEPD_BLACK convention).
+ *   Pixel value 1 → black,  0 → white.
  *
  * Required libraries (install via Arduino Library Manager)
  * ---------------------------------------------------------
@@ -39,6 +39,8 @@
 #include <GxEPD2_BW.h>
 #include <SPI.h>
 #include "config.h"
+#include "initial_image.h"
+#include "logging.h"
 
 // ---------------------------------------------------------------------------
 // Display object
@@ -97,7 +99,7 @@ static void onMqttMessage(char* topic, byte* payload, unsigned int length)
     if (strcmp(topic, MQTT_TOPIC_IMAGE) != 0) return;
 
     if (length != IMAGE_BYTES) {
-        Serial.printf("[MQTT] Unexpected payload size %u (expected %u) – ignoring\n",
+        Serial.printf(LOG_MQTT "Unexpected payload size %u (expected %u) – ignoring\n",
                       length, IMAGE_BYTES);
         return;
     }
@@ -105,7 +107,7 @@ static void onMqttMessage(char* topic, byte* payload, unsigned int length)
     if (imageBuffer) {
         memcpy(imageBuffer, payload, length);
         imageReceived = true;
-        Serial.printf("[MQTT] Image received (%u bytes)\n", length);
+        Serial.printf(LOG_MQTT "Image received (%u bytes)\n", length);
     }
 }
 
@@ -114,20 +116,20 @@ static void onMqttMessage(char* topic, byte* payload, unsigned int length)
 // ---------------------------------------------------------------------------
 static bool wifiConnect()
 {
-    Serial.printf("[WiFi] Connecting to \"%s\"", WIFI_SSID);
+    Serial.printf(LOG_WIFI "Connecting to \"%s\"", WIFI_SSID);
     WiFi.mode(WIFI_STA);
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 
     unsigned long start = millis();
     while (WiFi.status() != WL_CONNECTED) {
         if (millis() - start >= WIFI_TIMEOUT_MS) {
-            Serial.println("\n[WiFi] Connection timed out");
+            Serial.println("\n" LOG_WIFI "Connection timed out");
             return false;
         }
         delay(500);
         Serial.print(".");
     }
-    Serial.printf("\n[WiFi] Connected – IP: %s\n", WiFi.localIP().toString().c_str());
+    Serial.printf("\n" LOG_WIFI "Connected – IP: %s\n", WiFi.localIP().toString().c_str());
     return true;
 }
 
@@ -136,20 +138,20 @@ static bool wifiConnect()
 // ---------------------------------------------------------------------------
 static bool mqttConnect()
 {
-    Serial.printf("[MQTT] Connecting to %s:%d", MQTT_BROKER, MQTT_PORT);
+    Serial.printf(LOG_MQTT "Connecting to %s:%d", MQTT_BROKER, MQTT_PORT);
     mqttClient.setServer(MQTT_BROKER, MQTT_PORT);
     mqttClient.setCallback(onMqttMessage);
 
     // Enlarge the internal buffer so that a 48 000-byte image fits in one message
     if (!mqttClient.setBufferSize(IMAGE_BYTES + 512)) {
-        Serial.println("\n[MQTT] Failed to allocate receive buffer");
+        Serial.println("\n" LOG_MQTT "Failed to allocate receive buffer");
         return false;
     }
 
     unsigned long start = millis();
     while (!mqttClient.connected()) {
         if (millis() - start >= MQTT_TIMEOUT_MS) {
-            Serial.println("\n[MQTT] Connection timed out");
+            Serial.println("\n" LOG_MQTT "Connection timed out");
             return false;
         }
 
@@ -162,8 +164,41 @@ static bool mqttConnect()
             Serial.print(".");
         }
     }
-    Serial.println("\n[MQTT] Connected");
+    Serial.println("\n" LOG_MQTT "Connected");
     return true;
+}
+
+// ---------------------------------------------------------------------------
+// Render the initial (built-in) image from PROGMEM on first boot
+// ---------------------------------------------------------------------------
+static void showInitialImage()
+{
+    Serial.println(LOG_EPD "Displaying initial image…");
+    display.init(115200, true, 2, false);
+    display.setRotation(0);
+    display.setFullWindow();
+
+    // GxEPD2 uses a paged-drawing model to keep RAM usage low.
+    // The display height is divided into horizontal strips ("pages"); the
+    // draw commands inside the do-while loop are replayed once per page.
+    // firstPage() resets to the first strip; nextPage() advances to the next
+    // and returns false when all strips have been transferred to the panel.
+    display.firstPage();
+    do {
+        display.fillScreen(GxEPD_WHITE);
+        display.drawBitmap(0, 0, INITIAL_IMAGE,
+                           DISPLAY_WIDTH, DISPLAY_HEIGHT,
+                           GxEPD_BLACK);
+    } while (display.nextPage());
+
+    display.powerOff();
+
+    // Record the CRC of the initial image so it is not re-rendered on the
+    // next wake cycle unless a different image arrives via MQTT.
+    memcpy_P(imageBuffer, INITIAL_IMAGE, IMAGE_BYTES);
+    lastImageCrc = crc32(imageBuffer, IMAGE_BYTES);
+
+    Serial.println(LOG_EPD "Initial image displayed");
 }
 
 // ---------------------------------------------------------------------------
@@ -171,11 +206,16 @@ static bool mqttConnect()
 // ---------------------------------------------------------------------------
 static void showImage()
 {
-    Serial.println("[EPD] Refreshing display…");
+    Serial.println(LOG_EPD "Refreshing display…");
     display.init(115200, true, 2, false);
     display.setRotation(0);
     display.setFullWindow();
 
+    // GxEPD2 uses a paged-drawing model to keep RAM usage low.
+    // The display height is divided into horizontal strips ("pages"); the
+    // draw commands inside the do-while loop are replayed once per page.
+    // firstPage() resets to the first strip; nextPage() advances to the next
+    // and returns false when all strips have been transferred to the panel.
     display.firstPage();
     do {
         display.fillScreen(GxEPD_WHITE);
@@ -185,7 +225,7 @@ static void showImage()
     } while (display.nextPage());
 
     display.powerOff();
-    Serial.println("[EPD] Refresh complete");
+    Serial.println(LOG_EPD "Refresh complete");
 }
 
 // ---------------------------------------------------------------------------
@@ -200,7 +240,7 @@ static void goToSleep()
     WiFi.disconnect(true);
     WiFi.mode(WIFI_OFF);
 
-    Serial.printf("[ePaperDash] Sleeping for %d s\n", CHECK_INTERVAL_SEC);
+    Serial.printf(LOG_MAIN "Sleeping for %d s\n", CHECK_INTERVAL_SEC);
     Serial.flush();
 
     esp_sleep_enable_timer_wakeup((uint64_t)CHECK_INTERVAL_SEC * 1000000ULL);
@@ -214,14 +254,20 @@ void setup()
 {
     Serial.begin(115200);
     delay(100);
-    Serial.println("\n[ePaperDash] Wake-up");
+    Serial.println("\n" LOG_MAIN "Wake-up");
 
     // Allocate image receive buffer from heap
     imageBuffer = (uint8_t*)malloc(IMAGE_BYTES);
     if (!imageBuffer) {
-        Serial.println("[ERROR] Failed to allocate image buffer – not enough heap");
+        Serial.println(LOG_ERROR "Failed to allocate image buffer – not enough heap");
         goToSleep();
         return;
+    }
+
+    // On the very first boot (lastImageCrc == 0) show the built-in initial
+    // image immediately, before attempting a WiFi connection.
+    if (lastImageCrc == 0) {
+        showInitialImage();
     }
 
     bool gotImage = false;
@@ -229,7 +275,7 @@ void setup()
     if (wifiConnect() && mqttConnect()) {
         bool subscribed = mqttClient.subscribe(MQTT_TOPIC_IMAGE);
         if (subscribed) {
-            Serial.printf("[MQTT] Subscribed to \"%s\"\n", MQTT_TOPIC_IMAGE);
+            Serial.printf(LOG_MQTT "Subscribed to \"%s\"\n", MQTT_TOPIC_IMAGE);
 
             // Poll the client until the retained message arrives or timeout
             unsigned long waitStart = millis();
@@ -240,7 +286,7 @@ void setup()
             }
             gotImage = imageReceived;
         } else {
-            Serial.printf("[ERROR] Failed to subscribe to \"%s\" (MQTT state: %d)\n",
+            Serial.printf(LOG_ERROR "Failed to subscribe to \"%s\" (MQTT state: %d)\n",
                           MQTT_TOPIC_IMAGE, mqttClient.state());
         }
     }
@@ -248,15 +294,15 @@ void setup()
     if (gotImage) {
         uint32_t newCrc = crc32(imageBuffer, IMAGE_BYTES);
         if (newCrc != lastImageCrc) {
-            Serial.printf("[ePaperDash] New image (CRC %08X → %08X) – updating display\n",
+            Serial.printf(LOG_MAIN "New image (CRC %08X → %08X) – updating display\n",
                           lastImageCrc, newCrc);
             showImage();
             lastImageCrc = newCrc;
         } else {
-            Serial.println("[ePaperDash] Image unchanged – skipping display refresh");
+            Serial.println(LOG_MAIN "Image unchanged – skipping display refresh");
         }
     } else {
-        Serial.println("[ePaperDash] No image received within timeout");
+        Serial.println(LOG_MAIN "No image received within timeout");
     }
 
     goToSleep();

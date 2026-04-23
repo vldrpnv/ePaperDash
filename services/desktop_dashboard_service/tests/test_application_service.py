@@ -52,7 +52,7 @@ def test_application_service_renders_and_publishes_payload() -> None:
         publisher=publisher,
     )
     configuration = DashboardConfiguration(
-        layout=LayoutConfig(template="/tmp/layout.svg", width=16, height=8),
+        layout=LayoutConfig(template="/tmp/layout.svg", width=800, height=480),
         mqtt=MqttConfig(host="localhost", port=1883, topic="epaper/image"),
         panels=(
             PanelDefinition(
@@ -68,5 +68,5 @@ def test_application_service_renders_and_publishes_payload() -> None:
     result = service.generate_and_publish(configuration)
 
     assert layout_renderer.blocks[0].lines == ("Tuesday",)
-    assert len(result.payload) == 16
+    assert len(result.payload) == 48000
     assert publisher.payload == result.payload

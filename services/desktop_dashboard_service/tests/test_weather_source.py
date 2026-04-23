@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from epaper_dashboard_service.adapters.sources.weather import OpenMeteoWeatherSourcePlugin
 
 
@@ -30,3 +32,13 @@ def test_weather_source_maps_open_meteo_response() -> None:
     assert forecast.temperature_min_c == 7.2
     assert forecast.temperature_max_c == 15.4
     assert forecast.precipitation_probability_percent == 35
+
+
+def test_weather_source_validates_required_config_keys() -> None:
+    plugin = OpenMeteoWeatherSourcePlugin(fetcher=lambda url: {})
+
+    with pytest.raises(
+        ValueError,
+        match=r"weather_forecast source requires config value\(s\): latitude, longitude",
+    ):
+        plugin.fetch({})

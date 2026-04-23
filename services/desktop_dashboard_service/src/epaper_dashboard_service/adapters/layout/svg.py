@@ -31,8 +31,14 @@ class SvgLayoutRenderer(LayoutRenderer):
         png_bytes = cairosvg.svg2png(bytestring=svg_bytes, output_width=width, output_height=height)
         return Image.open(BytesIO(png_bytes)).convert("L")
 
+    def _find_element_by_id(self, root: ET.Element, element_id: str) -> ET.Element | None:
+        for element in root.iter():
+            if element.get("id") == element_id:
+                return element
+        return None
+
     def _apply_text_block(self, root: ET.Element, block: DashboardTextBlock) -> None:
-        element = root.find(f".//*[@id='{block.slot}']")
+        element = self._find_element_by_id(root, block.slot)
         if element is None:
             raise ValueError(f"No SVG element found for slot '{block.slot}'")
         if _local_name(element.tag) != "text":
