@@ -24,8 +24,24 @@ Before making changes, read:
   - Add or amend an ADR for architectural changes.
   - Add or amend a design decision record for implementation-level changes.
 
+## Harness state
+
+- `docs/architecture/README.md` is the canonical navigation index for architecture context.
+- Use the summary tables in that file to decide which ADRs and design decisions must be loaded for the current task.
+- There is currently no committed automated test or CI harness in this repository.
+- Until a harness exists, changes should include explicit acceptance criteria first and either:
+  - tests added first when a seam exists, or
+  - a documented missing test seam plus a concrete manual verification plan.
+
+## Intended agent workflow
+
+1. Load `docs/architecture/README.md`.
+2. Load only the ADRs and design-decision records whose scope matches the requested change.
+3. Capture or refine the specification before editing behavior.
+4. Prefer test-first changes; if not practical, document the missing seam and manual verification.
+5. Keep changes small and update the relevant decision records whenever design intent changes.
+
 ## Repository-specific notes
 
-- There is currently no committed automated test or CI harness in this repository.
 - Favor small, explicit changes over broad abstraction.
 - Keep configuration in `config.h` unless a documented decision changes that boundary.
