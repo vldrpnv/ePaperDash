@@ -88,7 +88,7 @@ configured) containing a raw **1-bit-per-pixel bitmap**:
 | Width × Height | 800 × 480 pixels |
 | Bits per pixel | 1 (MSB first) |
 | Payload size | **48 000 bytes** (800 × 480 ÷ 8) |
-| Pixel encoding | `0` = black, `1` = white |
+| Pixel encoding | `1` = black, `0` = white |
 
 The device only refreshes the display when the image CRC changes, avoiding
 unnecessary e-ink wear.
@@ -102,9 +102,12 @@ import numpy as np
 
 WIDTH, HEIGHT = 800, 480
 
-# Convert any image to 1-bpp 800×480 bitmap
+# Convert any image to 1-bpp 800×480 bitmap (white=0, black=1)
 img = Image.open("dashboard.png").convert("1").resize((WIDTH, HEIGHT))
 pixels = np.array(img, dtype=np.uint8)
+
+# Invert so that black pixels → 1 and white pixels → 0
+pixels = 1 - pixels
 
 # Pack 8 pixels into each byte (MSB first)
 payload = np.packbits(pixels.flatten()).tobytes()  # 48 000 bytes
