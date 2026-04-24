@@ -3,7 +3,13 @@ from __future__ import annotations
 from pathlib import Path
 import tomllib
 
-from epaper_dashboard_service.domain.models import DashboardConfiguration, LayoutConfig, MqttConfig, PanelDefinition
+from epaper_dashboard_service.domain.models import (
+    DashboardConfiguration,
+    LayoutConfig,
+    MqttConfig,
+    PanelDefinition,
+    ServiceConfig,
+)
 
 
 class ConfigurationError(ValueError):
@@ -50,7 +56,12 @@ def load_configuration(config_path: Path) -> DashboardConfiguration:
     if not panels:
         raise ConfigurationError("At least one panel must be configured")
 
-    return DashboardConfiguration(layout=layout, mqtt=mqtt, panels=panels)
+    service_section = raw.get("service", {})
+    service = ServiceConfig(
+        interval_seconds=int(service_section.get("interval_seconds", 300)),
+    )
+
+    return DashboardConfiguration(layout=layout, mqtt=mqtt, panels=panels, service=service)
 
 
 def _resolve_path(config_path: Path, candidate: str) -> str:

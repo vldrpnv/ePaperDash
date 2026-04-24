@@ -253,7 +253,7 @@ static void goToSleep()
 void setup()
 {
     Serial.begin(115200);
-    delay(100);
+    // delay(10000);
     Serial.println("\n" LOG_MAIN "Wake-up");
 
     // Allocate image receive buffer from heap

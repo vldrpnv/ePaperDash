@@ -6,7 +6,7 @@ from typing import Any
 
 from PIL import Image
 
-from epaper_dashboard_service.domain.models import DashboardTextBlock, PanelDefinition
+from epaper_dashboard_service.domain.models import DashboardTextBlock, ImagePlacement, PanelDefinition
 
 
 class SourcePlugin(ABC):
@@ -22,7 +22,7 @@ class RendererPlugin(ABC):
     supported_type: type[Any]
 
     @abstractmethod
-    def render(self, data: Any, panel: PanelDefinition) -> tuple[DashboardTextBlock, ...]:
+    def render(self, data: Any, panel: PanelDefinition) -> tuple[DashboardTextBlock | ImagePlacement, ...]:
         raise NotImplementedError
 
 

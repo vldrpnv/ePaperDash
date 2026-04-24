@@ -21,6 +21,27 @@ _MIN_FONT_SIZE = 8
 _MAX_FONT_SIZE = 200
 
 
+def extract_image_slots(template_path: Path) -> dict[str, dict[str, int]]:
+    """Return ``{id: {x, y, width, height}}`` for every ``<image>`` element with an ``id``
+    found in the SVG file.  Returns an empty dict when the file does not exist."""
+    if not template_path.exists():
+        return {}
+    tree = ET.parse(template_path)
+    root = tree.getroot()
+    slots: dict[str, dict[str, int]] = {}
+    for element in root.iter():
+        if _local_name(element.tag) == "image":
+            slot_id = element.get("id")
+            if slot_id:
+                slots[slot_id] = {
+                    "x": int(element.get("x", "0")),
+                    "y": int(element.get("y", "0")),
+                    "width": int(element.get("width", "0")),
+                    "height": int(element.get("height", "0")),
+                }
+    return slots
+
+
 class SvgLayoutRenderer(LayoutRenderer):
     def render(self, template_path: Path, blocks: tuple[DashboardTextBlock, ...], width: int, height: int) -> Image.Image:
         tree = ET.parse(template_path)
@@ -29,6 +50,12 @@ class SvgLayoutRenderer(LayoutRenderer):
         root.set("width", str(width))
         root.set("height", str(height))
         root.set("viewBox", f"0 0 {width} {height}")
+
+        # Remove <image> placeholder elements (those used as image-slot markers) so they
+        # do not appear as broken-image icons in the rasterised output.
+        for element in list(root):
+            if _local_name(element.tag) == "image" and element.get("id"):
+                root.remove(element)
 
         for block in blocks:
             self._apply_text_block(root, block)

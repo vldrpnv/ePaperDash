@@ -4,6 +4,9 @@ preview_output = "dashboard_preview.png"
 width = 800
 height = 480
 
+[service]
+interval_seconds = 300
+
 [mqtt]
 host = "localhost"
 port = 1883
@@ -17,7 +20,7 @@ source = "calendar"
 renderer = "calendar_text"
 slot = "calendar"
 [panels.source_config]
-timezone = "UTC"
+timezone = "Europe/Berlin"
 day_of_week_format = "%A"
 month_format = "%B"
 [panels.renderer_config]
@@ -29,9 +32,9 @@ source = "weather_forecast"
 renderer = "weather_text"
 slot = "weather"
 [panels.source_config]
-location_name = "Berlin"
-latitude = 52.52
-longitude = 13.41
+location_name = "Eichenau"
+latitude = 48.167
+longitude = 11.317
 timezone = "Europe/Berlin"
 [panels.renderer_config]
 font-size = "34"
@@ -46,3 +49,11 @@ limit = 3
 [panels.renderer_config]
 font-family = "Arial, sans-serif"
 fill = "black"
+
+[[panels]]
+source = "random_image"
+renderer = "random_image"
+slot = "image_pool"
+[panels.source_config]
+directory = "./image_samples"
+[panels.renderer_config]

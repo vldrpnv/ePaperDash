@@ -1,19 +1,8 @@
 #pragma once
 
-// =============================================================================
-// WiFi credentials
-// =============================================================================
-#define WIFI_SSID        "your_wifi_ssid"
-#define WIFI_PASSWORD    "your_wifi_password"
+#include "secrets.h"  // WiFi credentials plus MQTT broker/auth settings
 
-// =============================================================================
-// MQTT broker settings
-// =============================================================================
-#define MQTT_BROKER      "192.168.1.100"   // IP or hostname of your MQTT broker
-#define MQTT_PORT        1883
 #define MQTT_CLIENT_ID   "xiao_epaper_dash"
-#define MQTT_USERNAME    ""                // Leave empty if no authentication
-#define MQTT_PASSWORD    ""                // Leave empty if no authentication
 
 // Topic that carries the raw 1-bpp bitmap image (48 000 bytes, 800 × 480)
 #define MQTT_TOPIC_IMAGE "epaper/image"
@@ -21,7 +10,7 @@
 // =============================================================================
 // Timing
 // =============================================================================
-#define CHECK_INTERVAL_SEC       60     // Deep-sleep duration between checks
+#define CHECK_INTERVAL_SEC       30     // Deep-sleep duration between checks
 #define WIFI_TIMEOUT_MS          20000  // Max time to wait for WiFi connection
 #define MQTT_TIMEOUT_MS          10000  // Max time to wait for MQTT connection
 #define MQTT_MESSAGE_TIMEOUT_MS  5000   // Max time to wait for retained message

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
+import time
 from pathlib import Path
 
 from epaper_dashboard_service.application.config import load_configuration
@@ -8,14 +10,41 @@ from epaper_dashboard_service.bootstrap import build_application
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Generate and publish an ePaper dashboard image")
+    parser = argparse.ArgumentParser(
+        description="Generate and publish an ePaper dashboard image, cycling at a configurable interval"
+    )
     parser.add_argument("--config", required=True, type=Path, help="Path to the TOML configuration file")
+    parser.add_argument(
+        "--interval",
+        type=int,
+        default=None,
+        help="Override the check interval in seconds (default: value from config, or 300)",
+    )
     args = parser.parse_args()
 
     configuration = load_configuration(args.config.resolve())
+    interval_seconds = args.interval or configuration.service.interval_seconds
     application = build_application(configuration.mqtt)
-    result = application.generate_and_publish(configuration)
-    print(f"Generated {len(result.payload)} bytes for MQTT topic {configuration.mqtt.topic}")
+
+    print(f"Starting dashboard service (interval={interval_seconds}s)")
+
+    last_payload_hash: str | None = None
+    try:
+        while True:
+            result = application.generate(configuration)
+            current_hash = hashlib.sha256(result.payload).hexdigest()
+
+            if current_hash != last_payload_hash:
+                application.publish(result.payload)
+                last_payload_hash = current_hash
+                print(f"Published {len(result.payload)} bytes to {configuration.mqtt.topic} (hash={current_hash[:8]})")
+            else:
+                print("Dashboard unchanged, skipping publish")
+
+            time.sleep(interval_seconds)
+    except KeyboardInterrupt:
+        print("\nStopped")
+
     return 0
 
 
