@@ -1,6 +1,6 @@
 #pragma once
 
-#include "secrets.h"  // WiFi credentials (SSID and password)
+#include "secrets.h"  // WiFi credentials plus MQTT broker/auth settings
 
 #define MQTT_CLIENT_ID   "xiao_epaper_dash"
 
