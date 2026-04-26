@@ -50,7 +50,7 @@ def _make_fetcher(*departure_responses):
     call_count = [0]
 
     def fetcher(url: str):
-        if "station" in url:
+        if "station" in url or "locations" in url:
             assert "Eichenau" in url
             return _STATION_RESPONSE
         resp = responses[call_count[0] % len(responses)]
@@ -75,7 +75,7 @@ def test_mvg_source_looks_up_station_and_uses_global_id() -> None:
 
     def fetcher(url: str):
         visited_urls.append(url)
-        if "station" in url:
+        if "station" in url or "locations" in url:
             return _STATION_RESPONSE
         return [_DEPARTURE_ON_TIME]
 
@@ -89,7 +89,7 @@ def test_mvg_source_looks_up_station_and_uses_global_id() -> None:
 
 def test_mvg_source_raises_when_station_not_found() -> None:
     def fetcher(url: str):
-        if "station" in url:
+        if "station" in url or "locations" in url:
             return []
         return []
 
@@ -134,7 +134,7 @@ def test_mvg_source_maps_cancelled_departure() -> None:
 def test_mvg_source_accepts_wrapped_departures_response() -> None:
     """API may wrap the list inside a 'departures' key."""
     def fetcher(url: str):
-        if "station" in url:
+        if "station" in url or "locations" in url:
             return _STATION_RESPONSE
         return {"departures": [_DEPARTURE_ON_TIME]}
 

@@ -1,20 +1,24 @@
 from __future__ import annotations
 
 import json
+import logging
 from datetime import datetime, timezone
 from typing import Any, Protocol
 from urllib.parse import urlencode, urljoin
+from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 from epaper_dashboard_service.domain.models import TrainDeparture, TrainDepartures
 from epaper_dashboard_service.domain.ports import SourcePlugin
 
 
-_BASE_URL = "https://www.mvg.de/api/fib/v2/"
+_BASE_URL = "https://www.mvg.de/api/bgw-pt/v3/"
 _DEFAULT_HEADERS = {
     "Accept": "application/json",
     "User-Agent": "Mozilla/5.0 (compatible; ePaperDash/1.0)",
 }
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class MvgFetcher(Protocol):
@@ -45,16 +49,28 @@ class MvgDepartureSourcePlugin(SourcePlugin):
         offset_minutes = int(config.get("offset_minutes", 0))
         base_url = str(config.get("base_url", _BASE_URL))
 
+        _LOGGER.debug(
+            "MVG fetch start station=%r limit=%d offset_minutes=%d base_url=%s",
+            station_name,
+            limit,
+            offset_minutes,
+            base_url,
+        )
+
         global_id = self._lookup_station(station_name, base_url)
+        _LOGGER.debug("MVG station resolved station=%r global_id=%s", station_name, global_id)
         raw_departures = self._fetch_departures(global_id, limit, offset_minutes, base_url)
+        _LOGGER.debug("MVG departures fetched count=%d station=%r", len(raw_departures), station_name)
         entries = tuple(_parse_departure(d) for d in raw_departures)
         return TrainDepartures(station_name=station_name, entries=entries)
 
     def _lookup_station(self, name: str, base_url: str) -> str:
         query = urlencode({"query": name})
-        url = urljoin(base_url, f"station?{query}")
+        url = urljoin(base_url, f"locations?{query}")
+        _LOGGER.debug("MVG station lookup url=%s", url)
         data = self._fetcher(url)
         stations = data if isinstance(data, list) else data.get("locations", [])
+        _LOGGER.debug("MVG station lookup result type=%s size=%d", type(data).__name__, len(stations))
         if not stations:
             raise ValueError(f"MVG station not found: {name!r}")
         return str(stations[0]["globalId"])
@@ -67,7 +83,8 @@ class MvgDepartureSourcePlugin(SourcePlugin):
                 "offsetInMinutes": offset_minutes,
             }
         )
-        url = urljoin(base_url, f"departure?{query}")
+        url = urljoin(base_url, f"departures?{query}")
+        _LOGGER.debug("MVG departures request url=%s", url)
         data = self._fetcher(url)
         # The API may return a list directly or wrap it in a dict.
         if isinstance(data, list):
@@ -114,5 +131,13 @@ def _parse_time(value: Any) -> datetime:
 
 def _fetch_json(url: str) -> Any:
     req = Request(url, headers=_DEFAULT_HEADERS)
-    with urlopen(req, timeout=10) as response:
-        return json.load(response)
+    try:
+        with urlopen(req, timeout=10) as response:
+            _LOGGER.debug("MVG HTTP %s status=%s", url, getattr(response, "status", "?"))
+            return json.load(response)
+    except HTTPError as error:
+        _LOGGER.error("MVG HTTPError url=%s status=%s reason=%s", url, error.code, error.reason)
+        raise
+    except URLError as error:
+        _LOGGER.error("MVG URLError url=%s reason=%s", url, error.reason)
+        raise
