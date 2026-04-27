@@ -90,6 +90,13 @@ class ImagePlacement:
 
 
 @dataclass(frozen=True)
+class ClockData:
+    """Data for the analog validity-window clock renderer."""
+
+    render_time: datetime
+
+
+@dataclass(frozen=True)
 class TrainDeparture:
     line: str
     destination: str

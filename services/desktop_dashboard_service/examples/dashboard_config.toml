@@ -48,6 +48,19 @@ precip_prob_threshold = "0"
 precip_mm_threshold = "0"
 
 [[panels]]
+source = "clock"
+renderer = "analog_clock"
+slot = "analog_clock"
+[panels.source_config]
+timezone = "Europe/Berlin"
+[panels.renderer_config]
+validity_window_minutes = "5"
+window_start_mode = "start_at_next_minute"
+label_mode = "range"
+show_hour_hand = "true"
+show_tick_marks = "true"
+
+[[panels]]
 source = "mvg_departures"
 renderer = "train_departures_text"
 slot = "trains"
