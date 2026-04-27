@@ -113,6 +113,12 @@ class SvgLayoutRenderer(LayoutRenderer):
         for block in blocks:
             self._apply_text_block(root, block)
 
+        # Post-process: replace text-decoration markers with real SVG <line> elements
+        # because CairoSVG does not render text-decoration at all.
+        for text_el in list(root.iter()):
+            if _local_name(text_el.tag) == "text" and text_el.get("id"):
+                _inject_strikethrough_lines(root, text_el)
+
         svg_bytes = ET.tostring(root, encoding="utf-8", xml_declaration=True)
         if svg_output is not None:
             svg_output.parent.mkdir(parents=True, exist_ok=True)
@@ -181,6 +187,77 @@ class SvgLayoutRenderer(LayoutRenderer):
                 _write_line(tspan, line)
 
 
+def _resolve_em(value: str, font_size: float) -> float:
+    """Resolve an SVG/CSS length string like ``'1.5em'`` or ``'20'`` to pixels."""
+    if value.endswith("em"):
+        f = _parse_float(value[:-2])
+        return (f * font_size) if f is not None else 0.0
+    f = _parse_float(value)
+    return f if f is not None else 0.0
+
+
+def _inject_strikethrough_lines(root: ET.Element, text_el: ET.Element) -> None:
+    """Convert ``text-decoration=line-through`` tspan attributes to SVG ``<line>`` elements.
+
+    CairoSVG does not render the CSS ``text-decoration`` property (neither via
+    ``style=`` nor as a presentation attribute).  This function scans *text_el*
+    for struck spans, removes the attribute, and appends a ``<line>`` element to
+    *root* at the estimated screen position of each struck span.
+    """
+    text_x = _parse_float(text_el.get("x")) or 0.0
+    text_y = _parse_float(text_el.get("y")) or 0.0
+    text_font_size = _parse_float(text_el.get("font-size")) or 16.0
+
+    def _process_spans(
+        parent: ET.Element,
+        font_size: float,
+        start_x: float,
+        baseline_y: float,
+    ) -> None:
+        current_x = start_x
+        for child in list(parent):
+            if _local_name(child.tag) != "tspan":
+                continue
+            span_text = child.text or ""
+            child_font_size = _parse_float(child.get("font-size")) or font_size
+            is_bold = child.get("font-weight") == "bold"
+            char_w = child_font_size * _CHAR_WIDTH_RATIO * (1.1 if is_bold else 1.0)
+            span_width = len(span_text) * char_w
+            if child.get("text-decoration") == "line-through":
+                del child.attrib["text-decoration"]
+                # Strike sits at ~35 % of font height above the baseline.
+                strike_y = baseline_y - child_font_size * 0.35
+                line_el = ET.Element(f"{{{SVG_NS}}}line")
+                line_el.set("x1", f"{current_x:.1f}")
+                line_el.set("y1", f"{strike_y:.1f}")
+                line_el.set("x2", f"{current_x + span_width:.1f}")
+                line_el.set("y2", f"{strike_y:.1f}")
+                line_el.set("stroke", "black")
+                line_el.set("stroke-width", "1.5")
+                root.append(line_el)
+            current_x += span_width
+
+    # Detect layout mode: outer tspan wrappers (multi-line, each has x=) vs direct
+    # inner spans (single-line shortcut, no x= on children).
+    has_outer_tspans = any(
+        _local_name(child.tag) == "tspan" and child.get("x") is not None
+        for child in text_el
+    )
+    if has_outer_tspans:
+        current_y = text_y
+        for outer in text_el:
+            if _local_name(outer.tag) != "tspan":
+                continue
+            outer_font_size = _parse_float(outer.get("font-size")) or text_font_size
+            dy_str = outer.get("dy")
+            if dy_str:
+                current_y += _resolve_em(dy_str, outer_font_size)
+            line_x = _parse_float(outer.get("x")) or text_x
+            _process_spans(outer, outer_font_size, line_x, current_y)
+    else:
+        _process_spans(text_el, text_font_size, text_x, text_y)
+
+
 def _write_line(parent: ET.Element, line: str | RichLine) -> None:
     """Write a single line (plain string or sequence of TextSpan) into *parent*."""
     if isinstance(line, str):
@@ -193,9 +270,10 @@ def _write_line(parent: ET.Element, line: str | RichLine) -> None:
         if span.bold:
             inner.set("font-weight", "bold")
         if span.strikethrough:
-            # Use the CSS style attribute — CairoSVG renders text-decoration
-            # correctly via inline CSS but ignores it as a presentation attribute.
-            inner.set("style", "text-decoration: line-through")
+            # Mark for post-processing: _inject_strikethrough_lines replaces this
+            # attribute with a real SVG <line> element because CairoSVG does not
+            # render text-decoration (neither as CSS nor as a presentation attribute).
+            inner.set("text-decoration", "line-through")
         inner.text = span.text
 
 

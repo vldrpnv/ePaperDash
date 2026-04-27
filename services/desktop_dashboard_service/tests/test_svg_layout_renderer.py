@@ -95,14 +95,39 @@ def test_svg_layout_renderer_strikethrough_span(tmp_path: Path) -> None:
     )
     block = DashboardTextBlock(slot="slot", lines=(rich_line,))
 
+    # The marking step: _apply_text_block sets text-decoration on the tspan.
     tree = _ET.parse(template)
     root = tree.getroot()
     SvgLayoutRenderer()._apply_text_block(root, block)
 
     text_el = next(el for el in root.iter() if el.get("id") == "slot")
-    struck = [t for t in text_el if "line-through" in (t.get("style") or "")]
+    struck = [t for t in text_el if t.get("text-decoration") == "line-through"]
     assert len(struck) == 1
     assert "10:15" in struck[0].text
+
+
+def test_svg_layout_renderer_strikethrough_injects_line_element(tmp_path: Path) -> None:
+    """Full render: a struck span must produce a <line> element in the output SVG."""
+    import xml.etree.ElementTree as _ET
+    from epaper_dashboard_service.adapters.layout.svg import _inject_strikethrough_lines, SVG_NS
+
+    template = _simple_svg(tmp_path)
+    rich_line = (
+        TextSpan(text="S3", bold=True),
+        TextSpan(text="  10:15", strikethrough=True),
+        TextSpan(text="  Cancelled"),
+    )
+    block = DashboardTextBlock(slot="slot", lines=(rich_line,))
+
+    tree = _ET.parse(template)
+    root = tree.getroot()
+    SvgLayoutRenderer()._apply_text_block(root, block)
+    text_el = next(el for el in root.iter() if el.get("id") == "slot")
+    _inject_strikethrough_lines(root, text_el)
+
+    line_els = [el for el in root.iter() if el.tag == f"{{{SVG_NS}}}line"]
+    assert len(line_els) == 1, "Expected exactly one <line> element for the struck span"
+    assert line_els[0].get("stroke") == "black"
 
 
 def test_svg_layout_renderer_auto_font_size_from_bbox(tmp_path: Path) -> None:

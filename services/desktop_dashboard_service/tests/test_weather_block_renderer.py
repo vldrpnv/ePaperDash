@@ -81,9 +81,9 @@ def test_block_selection_at_08():
     periods = _make_two_day_forecast("2026-04-27", "2026-04-28")
     blocks = _select_weather_blocks(periods, now)
     assert len(blocks) == 3
-    assert "08:00" in blocks[0].time_label
-    assert "13:00" in blocks[1].time_label
-    assert "18:00" in blocks[2].time_label
+    assert "08" in blocks[0].time_label
+    assert "13" in blocks[1].time_label
+    assert "18" in blocks[2].time_label
 
 
 def test_block_selection_at_06():
@@ -92,61 +92,80 @@ def test_block_selection_at_06():
     periods = _make_two_day_forecast("2026-04-27", "2026-04-28")
     blocks = _select_weather_blocks(periods, now)
     assert len(blocks) == 3
-    assert "06:00" in blocks[0].time_label
-    assert "12:00" in blocks[1].time_label
-    assert "18:00" in blocks[2].time_label
+    assert "06" in blocks[0].time_label
+    assert "12" in blocks[1].time_label
+    assert "18" in blocks[2].time_label
 
 
 def test_block_selection_at_12():
-    """at 12:00 → remaining=10, 8≤10<12 → B1=12 now, B2=18 (ends at 22), B3=tmrw 06."""
+    """at 12:00 → remaining=10<12 → contiguous: 12-16, 16-20, 20-00 (all today)."""
     now = _local("2026-04-27", 12)
     periods = _make_two_day_forecast("2026-04-27", "2026-04-28")
     blocks = _select_weather_blocks(periods, now)
     assert len(blocks) == 3
-    assert "12:00" in blocks[0].time_label
-    assert "18:00" in blocks[1].time_label
-    assert "tmrw" in blocks[2].time_label
-    assert "06:00" in blocks[2].time_label
+    assert "12" in blocks[0].time_label
+    assert "tmrw" not in blocks[0].time_label
+    assert "16" in blocks[1].time_label
+    assert "tmrw" not in blocks[1].time_label
+    assert "20" in blocks[2].time_label
+    assert "tmrw" not in blocks[2].time_label
+
+
+def test_block_selection_at_15():
+    """at 15:00 → remaining=7<12 → contiguous: 15-19, 19-23, 23-03 (crosses midnight)."""
+    now = _local("2026-04-27", 15)
+    periods = _make_two_day_forecast("2026-04-27", "2026-04-28")
+    blocks = _select_weather_blocks(periods, now)
+    assert len(blocks) == 3
+    assert "15" in blocks[0].time_label
+    assert "tmrw" not in blocks[0].time_label
+    assert "19" in blocks[1].time_label
+    assert "tmrw" not in blocks[1].time_label
+    assert "23" in blocks[2].time_label
+    assert "tmrw" not in blocks[2].time_label
 
 
 def test_block_selection_at_16():
-    """at 16:00 → remaining=6<8, 16+4≤24 → 16-20 today, then tmrw 06-10, tmrw 10-14."""
+    """at 16:00 → remaining=6<12 → contiguous: 16-20, 20-00, tomorrow 00-04."""
     now = _local("2026-04-27", 16)
     periods = _make_two_day_forecast("2026-04-27", "2026-04-28")
     blocks = _select_weather_blocks(periods, now)
     assert len(blocks) == 3
-    assert "16:00" in blocks[0].time_label
+    assert "16" in blocks[0].time_label
     assert "tmrw" not in blocks[0].time_label
-    assert "tmrw" in blocks[1].time_label
-    assert "06:00" in blocks[1].time_label
+    assert "20" in blocks[1].time_label
+    assert "tmrw" not in blocks[1].time_label
+    # Block at 00 wraps to tomorrow
     assert "tmrw" in blocks[2].time_label
-    assert "10:00" in blocks[2].time_label
+    assert "00" in blocks[2].time_label
 
 
 def test_block_selection_at_20():
-    """at 20:00 → remaining=2<8, 20+4=24≤24 → 20-00 today, tmrw 06-10, tmrw 10-14."""
+    """at 20:00 → remaining=2<12 → contiguous: 20-00, tomorrow 00-04, tomorrow 04-08."""
     now = _local("2026-04-27", 20)
     periods = _make_two_day_forecast("2026-04-27", "2026-04-28")
     blocks = _select_weather_blocks(periods, now)
     assert len(blocks) == 3
-    assert "20:00" in blocks[0].time_label
+    assert "20" in blocks[0].time_label
     assert "tmrw" not in blocks[0].time_label
     assert "tmrw" in blocks[1].time_label
+    assert "00" in blocks[1].time_label
     assert "tmrw" in blocks[2].time_label
+    assert "04" in blocks[2].time_label
 
 
 def test_block_selection_at_13():
-    """at 13:04 → remaining=9, 8≤9<12 → B1=13 now, B2=18 (ends at 22), B3=tmrw 06."""
+    """at 13:00 → remaining=9<12 → contiguous: 13-17, 17-21, 21-01."""
     now = _local("2026-04-27", 13)
     periods = _make_two_day_forecast("2026-04-27", "2026-04-28")
     blocks = _select_weather_blocks(periods, now)
     assert len(blocks) == 3
-    assert "13:00" in blocks[0].time_label
+    assert "13" in blocks[0].time_label
     assert "tmrw" not in blocks[0].time_label
-    assert "18:00" in blocks[1].time_label
+    assert "17" in blocks[1].time_label
     assert "tmrw" not in blocks[1].time_label
-    assert "tmrw" in blocks[2].time_label
-    assert "06:00" in blocks[2].time_label
+    assert "21" in blocks[2].time_label
+    assert "tmrw" not in blocks[2].time_label
 
 
 # ---------------------------------------------------------------------------

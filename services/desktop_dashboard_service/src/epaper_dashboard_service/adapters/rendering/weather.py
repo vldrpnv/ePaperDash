@@ -142,11 +142,28 @@ class WeatherBlockRenderer(RendererPlugin):
         base_font_size_raw = panel.renderer_config.get("base_font_size")
         base_font_size: int | None = int(base_font_size_raw) if base_font_size_raw is not None else None
 
+        icon_size_factor_raw = panel.renderer_config.get("icon_size_factor")
+        icon_size_factor: float = float(icon_size_factor_raw) if icon_size_factor_raw is not None else 1.0
+
+        tomorrow_icon_size_factor_raw = panel.renderer_config.get("tomorrow_icon_size_factor")
+        tomorrow_icon_size_factor: float = float(tomorrow_icon_size_factor_raw) if tomorrow_icon_size_factor_raw is not None else 1.0
+
+        precip_prob_threshold_raw = panel.renderer_config.get("precip_prob_threshold")
+        precip_prob_threshold: int = int(precip_prob_threshold_raw) if precip_prob_threshold_raw is not None else 40
+
+        precip_mm_threshold_raw = panel.renderer_config.get("precip_mm_threshold")
+        precip_mm_threshold: float = float(precip_mm_threshold_raw) if precip_mm_threshold_raw is not None else 0.1
+
         now = datetime.now().astimezone()
         canvas = Image.new("L", (width, height), color=255)  # white background
         draw = ImageDraw.Draw(canvas)
 
-        _draw_weather_block(draw, canvas, data, now, width, height, self._icon_provider, font_path, bold_font_path, base_font_size)
+        _draw_weather_block(
+            draw, canvas, data, now, width, height, self._icon_provider,
+            font_path, bold_font_path, base_font_size,
+            icon_size_factor, tomorrow_icon_size_factor,
+            precip_prob_threshold, precip_mm_threshold,
+        )
 
         return (ImagePlacement(image=canvas, x=x, y=y),)
 
@@ -173,8 +190,14 @@ def _draw_weather_block(
     font_path: Path,
     bold_font_path: Path,
     base_font_size: int | None = None,
+    icon_size_factor: float = 1.0,
+    tomorrow_icon_size_factor: float = 1.0,
+    precip_prob_threshold: int = 40,
+    precip_mm_threshold: float = 0.1,
 ) -> None:
     lo = _compute_layout(height, base_font_size)
+    icon_size = max(16, int(lo["icon_size"] * icon_size_factor))
+    small_icon_size = max(16, int(lo["small_icon_size"] * tomorrow_icon_size_factor))
     font_lg = _load_font(bold_font_path, lo["font_lg_size"])
     font_md = _load_font(font_path, lo["font_md_size"])
     font_row3 = _load_font(font_path, lo["font_row3_size"])
@@ -190,7 +213,8 @@ def _draw_weather_block(
     # Row 1: today overview
     # -----------------------------------------------------------------------
     if today_periods:
-        _draw_row1(draw, today_periods, lo["row1_y"], width, font_lg)
+        _draw_row1(draw, today_periods, lo["row1_y"], width, font_lg,
+                   precip_prob_threshold, precip_mm_threshold)
 
     # -----------------------------------------------------------------------
     # Separator line between row 1 and row 2
@@ -206,8 +230,9 @@ def _draw_weather_block(
         block_x = col_idx * col_width
         _draw_block_column(
             draw, canvas, block, block_x, col_width,
-            lo["row2_top"], lo["row2_bottom"], lo["icon_size"],
+            lo["row2_top"], lo["row2_bottom"], icon_size,
             icon_provider, font_md, font_sm,
+            precip_prob_threshold, precip_mm_threshold,
         )
 
     # -----------------------------------------------------------------------
@@ -220,7 +245,8 @@ def _draw_weather_block(
     # -----------------------------------------------------------------------
     if tomorrow_periods:
         _draw_row3(draw, canvas, tomorrow_periods, lo["row3_y"], width, height,
-                   lo["small_icon_size"], icon_provider, font_row3, font_sm)
+                   small_icon_size, icon_provider, font_row3, font_sm,
+                   precip_prob_threshold, precip_mm_threshold)
 
 
 def _draw_row1(
@@ -229,6 +255,8 @@ def _draw_row1(
     y: int,
     width: int,
     font: ImageFont.FreeTypeFont | ImageFont.ImageFont,
+    precip_prob_threshold: int = 40,
+    precip_mm_threshold: float = 0.1,
 ) -> None:
     temps = [p.temperature_c for p in periods]
     t_min = min(temps)
@@ -238,7 +266,7 @@ def _draw_row1(
     max_prob = max(p.precipitation_probability_percent for p in periods)
 
     text = f"{condition}   {t_min:.0f}°\u2013{t_max:.0f}°C"
-    if max_prob >= 40 or total_mm > 0.1:
+    if max_prob >= precip_prob_threshold or total_mm > precip_mm_threshold:
         text += f"   {total_mm:.1f}mm ({max_prob}%)"
 
     draw.text((12, y), text, font=font, fill=0)
@@ -255,6 +283,8 @@ def _draw_row3(
     icon_provider: WeatherIconProvider,
     font_md: ImageFont.FreeTypeFont | ImageFont.ImageFont,
     font_sm: ImageFont.FreeTypeFont | ImageFont.ImageFont,
+    precip_prob_threshold: int = 40,
+    precip_mm_threshold: float = 0.1,
 ) -> None:
     temps = [p.temperature_c for p in periods]
     t_min = min(temps)
@@ -275,7 +305,7 @@ def _draw_row3(
         text_x = 10 + 22
 
     text = f"Tomorrow: {condition}  {t_min:.0f}\u2013{t_max:.0f}\u00b0C"
-    if max_prob >= 40 or total_mm > 0.1:
+    if max_prob >= precip_prob_threshold or total_mm > precip_mm_threshold:
         text += f"  {total_mm:.1f}mm ({max_prob}%)"
     row_text_y = y + (small_icon_size - 14) // 2
     draw.text((text_x, row_text_y), text, font=font_md, fill=0)
@@ -293,6 +323,8 @@ def _draw_block_column(
     icon_provider: WeatherIconProvider,
     font_md: ImageFont.FreeTypeFont | ImageFont.ImageFont,
     font_sm: ImageFont.FreeTypeFont | ImageFont.ImageFont,
+    precip_prob_threshold: int = 40,
+    precip_mm_threshold: float = 0.1,
 ) -> None:
     # --- icon ---
     icon_char = block.condition_icon
@@ -331,7 +363,7 @@ def _draw_block_column(
     _draw_centered_text(draw, temp_text, col_x, col_width, temp_y, font_sm)
 
     # --- precip (only if notable) ---
-    if block.precipitation_prob >= 40 or block.precipitation_mm > 0.1:
+    if block.precipitation_prob >= precip_prob_threshold or block.precipitation_mm > precip_mm_threshold:
         precip_text = f"{block.precipitation_mm:.1f}mm"
         precip_y = temp_y + sm_h + 2
         _draw_centered_text(draw, precip_text, col_x, col_width, precip_y, font_sm)
@@ -403,25 +435,21 @@ def _select_weather_blocks(
     **remaining ≥ 12**: Three 4-h blocks fit inside today.  Distribute the
     slack evenly as integer gaps between blocks so they spread across the rest
     of the day:
-        slack = remaining - 12          # total hours available as gaps
-        gap1  = ceil(slack / 2)
-        gap2  = floor(slack / 2)
+        slack = remaining - 12
         B1 starts at current_hour
-        B2 starts at current_hour + 4 + gap1
-        B3 starts at current_hour + 8 + gap1 + gap2   (= current_hour + 12 + slack - 1 ... = 22 - 4)
+        B2 starts at current_hour + 4 + ceil(slack/2)
+        B3 starts at current_hour + 8 + slack  (= 22 - 4)
 
     User examples:
-      06:00  remaining=16 slack=4  gaps 2,2  → 06-10, 12-16, 18-22
-      08:00  remaining=14 slack=2  gaps 1,1  → 08-12, 13-17, 18-22
+      06:00  remaining=16 slack=4  → 06-10, 12-16, 18-22
+      08:00  remaining=14 slack=2  → 08-12, 13-17, 18-22
 
-    **remaining < 12**: Pack contiguously from current_hour; once today's
-    midnight (24) is reached, continue on the next day starting at 06:00
-    (skipping the night window).
+    **remaining < 12**: Pack three contiguous 4-hour blocks from current_hour,
+    crossing midnight into tomorrow when needed.
 
     User examples:
-      12:00  → 12-16, 16-20, 20-24   (all today, extends past 22:00)
-      16:00  → 16-20, 20-24, tmrw 06-10
-      20:00  → 20-24, tmrw 06-10, tmrw 10-14
+      15:00  → 15-19, 19-23, 23-03
+      20:00  → 20-00, 00-04, 04-08
     """
     local_now = now.astimezone()
     today = local_now.date()
@@ -440,30 +468,16 @@ def _select_weather_blocks(
             (today, current_hour + 4 + gap1),
             (today, current_hour + 8 + gap1 + gap2),
         ]
-    elif remaining >= 8:
-        # Two 4-h blocks fit today without overlap: B1 now, B2 at 18:00 (ends at 22).
-        # Add one morning slot from tomorrow.
-        chosen = [
-            (today, current_hour),
-            (today, 18),
-            (tomorrow, 6),
-        ]
-    elif current_hour + 4 <= 24:
-        # One 4-h block fits today without crossing midnight.
-        # Fill the remaining two slots from tomorrow morning.
-        chosen = [
-            (today, current_hour),
-            (tomorrow, 6),
-            (tomorrow, 10),
-        ]
     else:
-        # No full 4-h block fits today without crossing midnight.
-        # Show tomorrow morning slots instead.
-        chosen = [
-            (tomorrow, 6),
-            (tomorrow, 10),
-            (tomorrow, 14),
-        ]
+        # Pack three contiguous 4-hour blocks starting at current_hour, crossing midnight
+        # into tomorrow when needed.
+        chosen = []
+        for i in range(3):
+            h = current_hour + i * 4
+            if h < 24:
+                chosen.append((today, h))
+            else:
+                chosen.append((tomorrow, h - 24))
 
     # Build a lookup: (date, hour) → list of periods that start in that hour
     period_lookup: dict[tuple[date, int], list[WeatherPeriod]] = {}
@@ -484,9 +498,9 @@ def _select_weather_blocks(
                 actual_hour -= 24
             block_periods.extend(period_lookup.get((actual_date, actual_hour), []))
 
-        # Use modulo so 24 displays as 00 (e.g. 20:00–00:00, not 20:00–24:00).
+        # Use modulo so 24 displays as 00 (e.g. 20–00, not 20–24).
         end_label = (block_hour + 4) % 24
-        label = f"{block_hour:02d}:00\u2013{end_label:02d}:00"
+        label = f"{block_hour:02d}\u2013{end_label:02d}"
         if block_date != today:
             label = "tmrw " + label
 

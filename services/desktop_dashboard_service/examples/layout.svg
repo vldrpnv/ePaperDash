@@ -17,7 +17,7 @@
         d="M184 24H72a32 32 0 0 0-32 32v128a32 32 0 0 0 72 32h8l-14.4 19.2a8 8 0 1 0 12.8 9.6L100 216h56l21.6 28.8a8 8 0 1 0 12.8-9.6L176 216h8a32 32 0 0 0 32-32V56a32 32 0 0 0-32-32M56 120V80h64v40Zm80-40h64v40h-64ZM72 40h112a16 16 0 0 1 16 16v8H56v-8a16 16 0 0 1 16-16m112 160H72a16 16 0 0 1-16-16v-48h144v48a16 16 0 0 1-16 16m-88-28a12 12 0 1 1-12-12a12 12 0 0 1 12 12m88 0a12 12 0 1 1-12-12a12 12 0 0 1 12 12"/>
 
   <!-- Trains: x=52 leaves room for the icon; auto-sized to bbox; station name + entries below -->
-  <text id="trains" x="52" y="192" font-family="Arial, sans-serif" fill="black"
+  <text id="trains" x="64" y="192" font-family="Arial, sans-serif" fill="black"
         data-bbox-width="243" data-bbox-height="280" />
 
   <!-- ═══════════════ VERTICAL SEPARATOR (only between weather and trains) ═══════════════ -->
