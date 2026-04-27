@@ -469,8 +469,8 @@ def test_renderer_repeated_line_label_uses_space_padding_not_bold_label() -> Non
         row = blocks[0].lines[row_idx]
         assert isinstance(row, StyledLine)
         first_span = row.spans[0]
-        # Padding span must NOT be the line label and must NOT be bold
-        assert first_span.text != "S4" or not first_span.bold, (
+        # Padding span must NOT be a bold line label
+        assert not (first_span.text == "S4" and first_span.bold), (
             f"Row {row_idx}: repeated label must be de-emphasized"
         )
         # Combined text still contains the destination
