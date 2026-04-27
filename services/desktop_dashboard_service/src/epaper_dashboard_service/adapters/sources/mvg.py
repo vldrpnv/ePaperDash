@@ -69,10 +69,17 @@ class MvgDepartureSourcePlugin(SourcePlugin):
             _LOGGER.debug("MVG station resolved station=%r global_id=%s", station_name, global_id)
             raw_departures = self._fetch_departures(global_id, limit, offset_minutes, timezone_name, base_url)
             _LOGGER.debug("MVG departures fetched count=%d station=%r", len(raw_departures), station_name)
-            entries = tuple(_parse_departure(d, output_timezone) for d in raw_departures)
+            try:
+                entries = tuple(_parse_departure(d, output_timezone) for d in raw_departures)
+            except (ValueError, KeyError, TypeError, IndexError) as parse_error:
+                raise SourceUnavailableError(
+                    f"{self.name} source unavailable: invalid departure data"
+                ) from parse_error
             return TrainDepartures(station_name=station_name, entries=entries)
         except SourceUnavailableError:
             raise
+        except ValueError:
+            raise  # "station not found" or "invalid timezone" — operator config error, fail fast
         except (URLError, TimeoutError, OSError, json.JSONDecodeError, KeyError, TypeError, IndexError) as error:
             raise SourceUnavailableError(f"{self.name} source unavailable") from error
 

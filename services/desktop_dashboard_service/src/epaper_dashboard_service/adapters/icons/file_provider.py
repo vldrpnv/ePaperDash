@@ -47,7 +47,10 @@ class FileWeatherIconProvider(WeatherIconProvider):
         self._icons_dir = icons_dir
 
     def get_icon(self, condition_icon: str, width: int, height: int) -> Image.Image | None:
-        return _load_icon(self._icons_dir, condition_icon, width, height)
+        filename = self._filename_for(condition_icon)
+        if filename is None:
+            return None
+        return _load_icon(self._icons_dir, filename, width, height)
 
     def _filename_for(self, condition_icon: str) -> str | None:
         """Return the filename for *condition_icon*, or ``None`` if unmapped."""
@@ -55,10 +58,7 @@ class FileWeatherIconProvider(WeatherIconProvider):
 
 
 @lru_cache(maxsize=64)
-def _load_icon(icons_dir: Path, condition_icon: str, width: int, height: int) -> Image.Image | None:
-    filename = ICON_MAP.get(condition_icon)
-    if filename is None:
-        return None
+def _load_icon(icons_dir: Path, filename: str, width: int, height: int) -> Image.Image | None:
     icon_path = icons_dir / filename
     if not icon_path.exists():
         return None

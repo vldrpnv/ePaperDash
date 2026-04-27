@@ -85,8 +85,9 @@ Provider-specific keys:
 
 ## Layouts
 
-The layout template is standard SVG. Each renderer writes text into a `<text>` element identified by the configured `slot`.
+The layout template is standard SVG. Two types of slots are supported:
 
-- Static SVG content such as shapes, lines, and embedded images can be part of the template. For example, a weather icon or appliance image can be placed directly in the SVG with standard SVG elements such as `<image>`.
-- The current plugin/rendering implementation populates text slots only. If you want source-driven images (for example, changing weather icons), the next step would be to add an image-capable renderer plugin and matching SVG slot handling.
-- Text does not auto-fit to a box today. Font sizing comes from the SVG template (`font-size`) and can be overridden per panel through `renderer_config` for supported text attributes such as `font-size`, `font-family`, `font-weight`, `fill`, and `text-anchor`.
+- **Text slots** (`<text id="...">`) — populated by text-based renderers (e.g. `calendar_text`, `weather_text`, `train_departures_text`).  Inline formatting (bold, strikethrough) is emitted as `<tspan>` children per `TextSpan`.  To auto-fit text to a bounding box, add `data-bbox-width` and `data-bbox-height` attributes to the `<text>` element; the renderer calculates an appropriate `font-size` automatically.  Per-renderer text attributes such as `font-size`, `font-family`, `font-weight`, `fill`, and `text-anchor` can be overridden via `renderer_config`.
+- **Image slots** (`<image id="...">`) — populated by image-based renderers (e.g. `random_image`, `weather_block`) that return an `ImagePlacement`.  The renderer composites a PIL image into the position declared by the SVG `<image>` element's `x`, `y`, `width`, and `height` attributes.  The `<image>` placeholder is stripped from the SVG before rasterisation so it does not appear in the final bitmap.
+
+Static SVG content such as shapes, dividers, and decorative elements can remain in the template unchanged.

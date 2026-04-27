@@ -18,7 +18,7 @@ Several API options were considered, ranked by preference (MVV > DB > general):
 
 ## Decision
 
-Use the unofficial MVG FIB v2 REST API (`https://www.mvg.de/api/fib/v2/`) because:
+Use the unofficial MVG BGW-PT v3 REST API (`https://www.mvg.de/api/bgw-pt/v3/`) because:
 
 1. It requires no registration, keeping setup friction near zero.
 2. It is the closest data source to MVV (operated by the MVG transport company itself).
@@ -26,8 +26,8 @@ Use the unofficial MVG FIB v2 REST API (`https://www.mvg.de/api/fib/v2/`) becaus
 4. It provides real-time delay and cancellation data for the Munich area.
 
 The `MvgDepartureSourcePlugin`:
-1. Resolves the human-readable `station_name` from config to a `globalId` via `GET /station?query=`.
-2. Fetches departures via `GET /departure?globalId=&limit=&offsetInMinutes=` and includes a timezone preference query parameter when configured.
+1. Resolves the human-readable `station_name` from config to a `globalId` via `GET /locations?query=`.
+2. Fetches departures via `GET /departures?globalId=&limit=&offsetInMinutes=` and includes a timezone preference query parameter when configured.
 3. Handles both `plannedDepartureTime` as epoch milliseconds and as ISO-8601 strings (the API format may vary).
 4. Handles both a bare JSON array response and a `{"departures": [...]}` wrapped response for resilience against API changes.
 5. Normalizes parsed planned and realtime departure times to a configured IANA timezone (default: `Europe/Berlin`) before handing data to renderers.

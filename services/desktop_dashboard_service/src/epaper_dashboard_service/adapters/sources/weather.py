@@ -36,6 +36,10 @@ class WeatherForecastSourcePlugin(SourcePlugin):
         forecast_days = max(1, min(int(config.get("forecast_days", 5)), 7))
         provider = str(config.get("provider", "open_meteo")).strip().lower()
 
+        # Config validation that does not require a network call — fail fast.
+        if provider not in ("open_meteo", "met_no", "openweather"):
+            raise ValueError(f"{self.name} source has unsupported provider: {provider}")
+
         try:
             periods: tuple[WeatherPeriod, ...]
             source_precision_hours: int
@@ -45,46 +49,44 @@ class WeatherForecastSourcePlugin(SourcePlugin):
             elif provider == "met_no":
                 payload = self._fetch_met_no(config, latitude, longitude)
                 periods, source_precision_hours = _parse_met_no(payload, forecast_days)
-            elif provider == "openweather":
+            else:  # openweather
                 payload = self._fetch_openweather(config, latitude, longitude)
                 periods, source_precision_hours = _parse_openweather(payload, forecast_days)
-            else:
-                raise ValueError(f"{self.name} source has unsupported provider: {provider}")
-
-            target_precision_hours = int(config.get("precision_hours", source_precision_hours))
-            if target_precision_hours < source_precision_hours:
-                raise ValueError(
-                    f"{self.name} source precision_hours ({target_precision_hours}) cannot be finer than "
-                    f"provider precision ({source_precision_hours})"
-                )
-
-            if target_precision_hours % source_precision_hours != 0:
-                raise ValueError(
-                    f"{self.name} source precision_hours ({target_precision_hours}) must be a multiple of "
-                    f"provider precision ({source_precision_hours})"
-                )
-
-            if target_precision_hours != source_precision_hours:
-                periods = _coarsen_periods(
-                    periods,
-                    source_precision_hours=source_precision_hours,
-                    target_precision_hours=target_precision_hours,
-                )
-
-            return WeatherForecast(
-                location_name=location_name,
-                provider=provider,
-                source_precision_hours=target_precision_hours,
-                periods=periods,
-            )
-        except ValueError:
-            raise
         except SourceUnavailableError:
             raise
         except (TimeoutError, URLError, OSError) as error:
             raise SourceUnavailableError(f"{self.name} source unavailable") from error
         except (KeyError, TypeError, ValueError, IndexError) as error:
             raise SourceUnavailableError(f"{self.name} source unavailable: invalid response") from error
+
+        # Precision coarsening — depends on source_precision_hours from the fetch above.
+        # These are config validation errors (operator misconfiguration) so they raise ValueError.
+        target_precision_hours = int(config.get("precision_hours", source_precision_hours))
+        if target_precision_hours < source_precision_hours:
+            raise ValueError(
+                f"{self.name} source precision_hours ({target_precision_hours}) cannot be finer than "
+                f"provider precision ({source_precision_hours})"
+            )
+
+        if target_precision_hours % source_precision_hours != 0:
+            raise ValueError(
+                f"{self.name} source precision_hours ({target_precision_hours}) must be a multiple of "
+                f"provider precision ({source_precision_hours})"
+            )
+
+        if target_precision_hours != source_precision_hours:
+            periods = _coarsen_periods(
+                periods,
+                source_precision_hours=source_precision_hours,
+                target_precision_hours=target_precision_hours,
+            )
+
+        return WeatherForecast(
+            location_name=location_name,
+            provider=provider,
+            source_precision_hours=target_precision_hours,
+            periods=periods,
+        )
 
     def _fetch_open_meteo(
         self,

@@ -117,7 +117,7 @@ Font rendering in `weather_block` uses bundled DejaVu Sans TTF files in `adapter
   - Open-Meteo (free hourly forecast)
   - MET Norway (free hourly forecast)
   - OpenWeather 5-day forecast in 3-hour blocks
-- `mvg_departures` backed by the MVG FIB v2 API (no registration required)
+- `mvg_departures` backed by the MVG BGW-PT v3 API (no registration required)
   - supports optional `source_config.timezone` (IANA timezone name) for normalizing departure times before rendering
   - defaults to `Europe/Berlin` when `timezone` is not set
 
@@ -126,7 +126,7 @@ Font rendering in `weather_block` uses bundled DejaVu Sans TTF files in `adapter
 - `calendar_text`
 - `weather_text` (icon-based weather timeline, SVG text output)
 - `weather_block` (self-contained PIL image: today overview + 4-h blocks + tomorrow row)
-- `train_departures_text` — the station name header is a plain string; each departure row is a `RichLine` with: bold line label, destination (direction), scheduled time; delayed departures show the scheduled time as strikethrough followed by the actual time; cancelled departures show the scheduled time as strikethrough and append "Cancelled"
+- `train_departures_text` — the station name header is a **bold** `RichLine`; each departure row is also a `RichLine` with: bold line label, destination (direction), scheduled time; delayed departures show the scheduled time as strikethrough followed by the actual time; cancelled departures show the scheduled time as strikethrough and append "Cancelled"
 
 ## Output contract
 
