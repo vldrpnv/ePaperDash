@@ -465,7 +465,12 @@ def _select_weather_blocks(
       20:00  → 20-00, tmrw 06-10, tmrw 10-14
       21:00  → tmrw 06-10, tmrw 10-14, tmrw 14-18
     """
-    local_now = now  # preserve caller's timezone for correct hour interpretation
+    local_now = now  # use now's own timezone, not the system TZ, so that the
+    # hour is interpreted in the same zone as the periods (which are converted
+    # with now.tzinfo below).  Calling .astimezone() without args would silently
+    # convert to the machine's local timezone, producing wrong results whenever
+    # the caller passes a datetime in a different zone (e.g. during tests or
+    # when the service runs in UTC while the display is in a different zone).
     today = local_now.date()
     tomorrow = today + timedelta(days=1)
     H = local_now.hour
