@@ -14,8 +14,8 @@
        size_px=60 in renderer_config keeps the face small and unobtrusive. -->
   <image id="analog_clock" x="51" y="100" width="76" height="96" />
 
-  <!-- Mascot / decorative image: reduced and anchored below the clock. -->
-  <image id="image_pool" x="22" y="212" width="130" height="130" />
+  <!-- Mascot / decorative image: anchored at the bottom-left corner of the rail. -->
+  <image id="image_pool" x="10" y="350" width="130" height="130" />
 
   <!-- ═══════════════ MAIN CONTENT AREA (x 188–800) ═══════════════ -->
 
@@ -25,8 +25,8 @@
        and injected into the weather_block renderer_config. -->
   <image id="weather_block" x="188" y="6" width="606" height="200" />
 
-  <!-- Single thin separator between weather and transport. -->
-  <line x1="192" y1="212" x2="794" y2="212" stroke="#aaa" stroke-width="1" />
+  <!-- Bold separator between weather and transport — clearly marks the zone boundary. -->
+  <line x1="192" y1="212" x2="794" y2="212" stroke="#444" stroke-width="2" />
 
   <!-- Train icon: Phosphor Icons "train" (MIT), viewBox 0 0 256 256.
        Transform: translate(184,212) scale(0.2) places the icon top-left at ≈(192,214),

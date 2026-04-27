@@ -155,6 +155,14 @@ class WeatherBlockRenderer(RendererPlugin):
         precip_mm_threshold: float = float(precip_mm_threshold_raw) if precip_mm_threshold_raw is not None else 0.1
 
         now = datetime.now().astimezone()
+        # Re-anchor "now" to the data periods' timezone so that "today" and
+        # "tomorrow" are resolved in the user's local timezone, not the
+        # server's system timezone.  Without this, a UTC server would compute
+        # the wrong date when the user's clock has already crossed midnight.
+        if data.periods:
+            data_tz = data.periods[0].start_time.tzinfo
+            if data_tz is not None:
+                now = now.astimezone(data_tz)
         canvas = Image.new("L", (width, height), color=255)  # white background
         draw = ImageDraw.Draw(canvas)
 
@@ -205,9 +213,10 @@ def _draw_weather_block(
 
     today = now.date()
     tomorrow = today + timedelta(days=1)
+    tz = now.tzinfo  # use the same timezone for all date comparisons
 
-    today_periods = [p for p in data.periods if p.start_time.astimezone().date() == today]
-    tomorrow_periods = [p for p in data.periods if p.start_time.astimezone().date() == tomorrow]
+    today_periods = [p for p in data.periods if p.start_time.astimezone(tz).date() == today]
+    tomorrow_periods = [p for p in data.periods if p.start_time.astimezone(tz).date() == tomorrow]
 
     # -----------------------------------------------------------------------
     # Row 1: today overview
@@ -244,7 +253,7 @@ def _draw_weather_block(
     # Row 3: tomorrow overview
     # -----------------------------------------------------------------------
     if tomorrow_periods:
-        _draw_row3(draw, canvas, tomorrow_periods, lo["row3_y"], width, height,
+        _draw_row3(draw, canvas, tomorrow_periods, tomorrow, lo["row3_y"], width, height,
                    small_icon_size, icon_provider, font_row3, font_sm,
                    precip_prob_threshold, precip_mm_threshold)
 
@@ -276,6 +285,7 @@ def _draw_row3(
     draw: ImageDraw.ImageDraw,
     canvas: Image.Image,
     periods: list[WeatherPeriod],
+    tomorrow_date: date,
     y: int,
     width: int,
     height: int,
@@ -304,7 +314,8 @@ def _draw_row3(
         draw.text((10, y + (small_icon_size - 16) // 2), icon_char, font=font_md, fill=0)
         text_x = 10 + 22
 
-    text = f"Tomorrow: {condition}  {t_min:.0f}\u2013{t_max:.0f}\u00b0C"
+    date_str = f"{tomorrow_date.day:02d}.{tomorrow_date.month:02d}"
+    text = f"Tomorrow, {date_str}: {condition}  {t_min:.0f}\u2013{t_max:.0f}\u00b0C"
     if max_prob >= precip_prob_threshold or total_mm > precip_mm_threshold:
         text += f"  {total_mm:.1f}mm ({max_prob}%)"
     row_text_y = y + (small_icon_size - 14) // 2
@@ -475,12 +486,22 @@ def _select_weather_blocks(
     tomorrow = today + timedelta(days=1)
     H = local_now.hour
 
-    if H < 6 or H >= 21:
-        # All three slots are on tomorrow, starting at core-hour boundaries.
+    if H >= 21:
+        # Today is essentially over — all three slots show tomorrow's core hours.
         chosen: list[tuple[date, int]] = [
             (tomorrow, 6),
             (tomorrow, 10),
             (tomorrow, 14),
+        ]
+    elif H < 6:
+        # Early morning (00–05): today's core hours haven't started yet — show
+        # today's coming daytime slots rather than tomorrow's.  This avoids the
+        # confusing situation where the forecast blocks show a different day
+        # from the today-overview in row 1.
+        chosen = [
+            (today, 6),
+            (today, 10),
+            (today, 14),
         ]
     elif H <= 12:
         # Three today-slots: anchor last slot at max(H+8, 18) so it never

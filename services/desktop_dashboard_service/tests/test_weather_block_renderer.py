@@ -80,7 +80,8 @@ def _make_panel(**renderer_config) -> PanelDefinition:
 # H <= 12:             three today-slots  S1=H, S2=max(H+8,18)-4, S3=max(H+8,18)
 # 13 <= H <= 16:       two today + one tomorrow  S1=H, S2=max(H+4,18), S3=(tmrw,06)
 # 17 <= H <= 20:       one today + two tomorrow  S1=H, S2=(tmrw,06), S3=(tmrw,10)
-# H >= 21 or H < 6:   all tomorrow  (tmrw,06), (tmrw,10), (tmrw,14)
+# H >= 21:             all tomorrow  (tmrw,06), (tmrw,10), (tmrw,14)
+# H < 6:               today's coming daytime  (today,06), (today,10), (today,14)
 # ---------------------------------------------------------------------------
 
 def test_block_selection_at_06():
@@ -265,6 +266,34 @@ def test_block_selection_at_21():
     assert "14" in blocks[2].time_label
 
 
+def test_block_selection_at_00():
+    """at 00:00 → H<6: today's coming daytime slots 06, 10, 14 (NOT tomorrow)."""
+    now = _local("2026-04-27", 0)
+    periods = _make_two_day_forecast("2026-04-27", "2026-04-28")
+    blocks = _select_weather_blocks(periods, now)
+    assert len(blocks) == 3
+    assert "tmrw" not in blocks[0].time_label
+    assert "06" in blocks[0].time_label
+    assert "tmrw" not in blocks[1].time_label
+    assert "10" in blocks[1].time_label
+    assert "tmrw" not in blocks[2].time_label
+    assert "14" in blocks[2].time_label
+
+
+def test_block_selection_at_05():
+    """at 05:00 → H<6: today's coming daytime slots 06, 10, 14 (NOT tomorrow)."""
+    now = _local("2026-04-27", 5)
+    periods = _make_two_day_forecast("2026-04-27", "2026-04-28")
+    blocks = _select_weather_blocks(periods, now)
+    assert len(blocks) == 3
+    assert "tmrw" not in blocks[0].time_label
+    assert "06" in blocks[0].time_label
+    assert "tmrw" not in blocks[1].time_label
+    assert "10" in blocks[1].time_label
+    assert "tmrw" not in blocks[2].time_label
+    assert "14" in blocks[2].time_label
+
+
 # ---------------------------------------------------------------------------
 # Renderer output contract
 # ---------------------------------------------------------------------------
@@ -325,6 +354,58 @@ def test_weather_block_renderer_works_with_empty_periods():
     result = renderer.render(data, _make_panel())
     assert len(result) == 1
     assert isinstance(result[0], ImagePlacement)
+
+
+# ---------------------------------------------------------------------------
+# Timezone — renderer uses data periods' timezone, not system TZ
+# ---------------------------------------------------------------------------
+
+def test_block_selection_uses_data_timezone_not_system():
+    """When the server runs in UTC and data is in CEST, 'today' must be CEST date.
+
+    At 22:38 UTC on April 27 (= 00:38 CEST on April 28), the user is already
+    in April 28.  The forecast blocks should show April 28 (today in CEST),
+    not label it as 'tomorrow'.
+    """
+    _TZ_UTC = timezone.utc
+    # Simulate a UTC server at 22:38 on April 27
+    now_utc = datetime(2026, 4, 27, 22, 38, tzinfo=_TZ_UTC)
+    # Data periods span April 28 in CEST (= UTC+2)
+    cest = _TZ_BERLIN
+    # Build periods anchored to CEST April 28
+    apr28_periods = tuple(
+        WeatherPeriod(
+            start_time=datetime(2026, 4, 28, h, 0, tzinfo=cest),
+            end_time=datetime(2026, 4, 28, h, 0, tzinfo=cest) + timedelta(hours=1),
+            temperature_c=15.0,
+            precipitation_probability_percent=10,
+            condition_label="Sunny",
+            condition_icon="\u2600",
+            precipitation_mm=0.0,
+        )
+        for h in range(24)
+    )
+    apr29_periods = tuple(
+        WeatherPeriod(
+            start_time=datetime(2026, 4, 29, h, 0, tzinfo=cest),
+            end_time=datetime(2026, 4, 29, h, 0, tzinfo=cest) + timedelta(hours=1),
+            temperature_c=16.0,
+            precipitation_probability_percent=20,
+            condition_label="Cloudy",
+            condition_icon="\u2601",
+            precipitation_mm=0.0,
+        )
+        for h in range(24)
+    )
+    # Re-anchor now to CEST (as the renderer does internally)
+    now_cest = now_utc.astimezone(cest)  # 00:38 CEST April 28
+    blocks = _select_weather_blocks(apr28_periods + apr29_periods, now_cest)
+    # H=0 in CEST → H<6: show today's (April 28 CEST) daytime slots
+    assert len(blocks) == 3
+    for b in blocks:
+        assert "tmrw" not in b.time_label, (
+            f"Block '{b.time_label}' must be today (CEST April 28), not tomorrow"
+        )
 
 
 # ---------------------------------------------------------------------------

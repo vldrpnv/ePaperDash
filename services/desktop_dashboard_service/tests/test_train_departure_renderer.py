@@ -73,7 +73,8 @@ def test_renderer_on_time_departure_shows_bold_label_and_scheduled_time() -> Non
     assert time_texts.count("10:00") == 1
 
 
-def test_renderer_delayed_departure_shows_both_times() -> None:
+def test_renderer_delayed_departure_shows_actual_time_only() -> None:
+    """Delayed departure must show only the actual time (bold); scheduled time hidden."""
     renderer = TrainDepartureTextRenderer()
     dep = TrainDeparture(
         line="S4",
@@ -88,15 +89,17 @@ def test_renderer_delayed_departure_shows_both_times() -> None:
     rich_line = blocks[0].lines[1]
     assert isinstance(rich_line, StyledLine)
     all_text = "".join(s.text for s in rich_line.spans)
-    # Scheduled time must appear (struck through); actual time not repeated verbatim.
-    assert "10:00" in all_text
-    assert "10:03" not in all_text
-    # Delay indicator must be shown.
-    assert "+3m" in all_text
+    # Only the actual time must appear; scheduled time must be hidden.
+    assert "10:03" in all_text
+    assert "10:00" not in all_text
+    # The actual-time span must be bold.
+    actual_spans = [s for s in rich_line.spans if "10:03" in s.text]
+    assert len(actual_spans) == 1
+    assert actual_spans[0].bold is True
 
 
-def test_renderer_early_arrival_shows_negative_delay_marker() -> None:
-    """Early arrival (actual before scheduled) must show -Xm, not +-Xm."""
+def test_renderer_early_arrival_shows_actual_time_bold() -> None:
+    """Early arrival (actual before scheduled) must show actual time bold; scheduled hidden."""
     renderer = TrainDepartureTextRenderer()
     dep = TrainDeparture(
         line="S4",
@@ -111,13 +114,15 @@ def test_renderer_early_arrival_shows_negative_delay_marker() -> None:
     rich_line = blocks[0].lines[1]
     assert isinstance(rich_line, StyledLine)
     all_text = "".join(s.text for s in rich_line.spans)
-    assert "10:05" in all_text
-    assert "10:02" not in all_text
-    assert "-3m" in all_text
-    assert "+-3m" not in all_text
+    assert "10:02" in all_text
+    assert "10:05" not in all_text
+    actual_spans = [s for s in rich_line.spans if "10:02" in s.text]
+    assert len(actual_spans) == 1
+    assert actual_spans[0].bold is True
 
 
-def test_renderer_delayed_departure_has_strikethrough_on_scheduled_time() -> None:
+def test_renderer_delayed_departure_hides_scheduled_time() -> None:
+    """Delayed departure must NOT show the scheduled time — only actual time (bold)."""
     renderer = TrainDepartureTextRenderer()
     dep = TrainDeparture(
         line="S4",
@@ -131,9 +136,12 @@ def test_renderer_delayed_departure_has_strikethrough_on_scheduled_time() -> Non
 
     rich_line = blocks[0].lines[1]
     assert isinstance(rich_line, StyledLine)
-    scheduled_spans = [s for s in rich_line.spans if "10:00" in s.text]
-    assert len(scheduled_spans) == 1
-    assert scheduled_spans[0].strikethrough is True
+    all_text = "".join(s.text for s in rich_line.spans)
+    # Scheduled time must be absent; actual time must be present.
+    assert "10:00" not in all_text
+    assert "10:05" in all_text
+    # No strikethrough spans for a delayed departure.
+    assert not any(s.strikethrough for s in rich_line.spans)
 
 
 def test_renderer_on_time_departure_scheduled_time_not_strikethrough() -> None:
@@ -237,8 +245,9 @@ def test_renderer_shows_destination_after_label_delayed() -> None:
     rich_line = blocks[0].lines[1]
     assert isinstance(rich_line, StyledLine)
     all_text = "".join(s.text for s in rich_line.spans)
-    assert "10:00" in all_text
-    assert "+5m" in all_text
+    # Only actual time; scheduled time must be hidden.
+    assert "10:05" in all_text
+    assert "10:00" not in all_text
     assert "Leuchtenbergring" in all_text
 
 
@@ -527,7 +536,7 @@ def test_renderer_new_line_label_restarts_bold_display() -> None:
 # ---------------------------------------------------------------------------
 
 def test_renderer_delayed_actual_time_span_is_bold() -> None:
-    """Delay indicator (+Xm) must be bold when the departure is delayed."""
+    """Actual departure time must be bold when the departure is delayed."""
     renderer = TrainDepartureTextRenderer()
     dep = TrainDeparture(
         line="S4",
@@ -541,12 +550,12 @@ def test_renderer_delayed_actual_time_span_is_bold() -> None:
 
     timetable_row = blocks[0].lines[1]
     assert isinstance(timetable_row, StyledLine)
-    delay_spans = [s for s in timetable_row.spans if "+7m" in s.text]
-    assert len(delay_spans) == 1
-    assert delay_spans[0].bold is True
-    # Actual clock time must not appear verbatim
+    actual_spans = [s for s in timetable_row.spans if "10:07" in s.text]
+    assert len(actual_spans) == 1
+    assert actual_spans[0].bold is True
+    # Scheduled time must not appear at all
     all_text = "".join(s.text for s in timetable_row.spans)
-    assert "10:07" not in all_text
+    assert "10:00" not in all_text
 
 
 def test_renderer_on_time_actual_time_not_bold() -> None:
