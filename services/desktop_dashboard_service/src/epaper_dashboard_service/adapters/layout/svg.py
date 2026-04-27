@@ -187,19 +187,27 @@ def _svg_to_png(svg_bytes: bytes, width: int, height: int) -> bytes:
     ``rsvg-convert`` (librsvg) renders ``text-decoration: line-through`` natively,
     which avoids the need for the manual SVG-line injection that was required with
     CairoSVG.
+
+    Raises ``FileNotFoundError`` when ``rsvg-convert`` is not on ``PATH``
+    (install with ``sudo apt-get install -y librsvg2-bin``).
     """
-    result = subprocess.run(
-        [
-            "rsvg-convert",
-            "--format", "png",
-            "--width", str(width),
-            "--height", str(height),
-            "-",
-        ],
-        input=svg_bytes,
-        capture_output=True,
-        timeout=30,
-    )
+    try:
+        result = subprocess.run(
+            [
+                "rsvg-convert",
+                "--format", "png",
+                "--width", str(width),
+                "--height", str(height),
+                "-",
+            ],
+            input=svg_bytes,
+            capture_output=True,
+            timeout=30,
+        )
+    except FileNotFoundError as exc:
+        raise FileNotFoundError(
+            "rsvg-convert not found. Install librsvg2-bin: sudo apt-get install -y librsvg2-bin"
+        ) from exc
     if result.returncode != 0:
         raise RuntimeError(
             f"rsvg-convert failed (exit {result.returncode}): {result.stderr.decode(errors='replace')}"

@@ -121,6 +121,39 @@ def test_svg_layout_renderer_strikethrough_renders_without_error(tmp_path: Path)
     assert image.size == (200, 100)
 
 
+def test_svg_layout_renderer_strikethrough_differs_from_plain(tmp_path: Path) -> None:
+    """A struck span must produce a visually different image than the same text without strike."""
+    def _make_template(tmp: Path, name: str) -> Path:
+        t = tmp / name
+        t.write_text(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="60">'
+            '<rect width="200" height="60" fill="white" />'
+            '<text id="slot" x="10" y="35" font-size="20" font-family="sans-serif">placeholder</text>'
+            "</svg>",
+            encoding="utf-8",
+        )
+        return t
+
+    renderer = SvgLayoutRenderer()
+
+    struck_block = DashboardTextBlock(
+        slot="slot",
+        lines=((TextSpan(text="10:15", strikethrough=True),),),
+    )
+    plain_block = DashboardTextBlock(
+        slot="slot",
+        lines=((TextSpan(text="10:15"),),),
+    )
+
+    img_strike = renderer.render(_make_template(tmp_path, "a.svg"), (struck_block,), 200, 60)
+    img_plain = renderer.render(_make_template(tmp_path, "b.svg"), (plain_block,), 200, 60)
+
+    pixels_strike = img_strike.tobytes()
+    pixels_plain = img_plain.tobytes()
+    diff = sum(1 for a, b in zip(pixels_strike, pixels_plain) if a != b)
+    assert diff > 5, "Strikethrough rendering must produce pixels different from plain text"
+
+
 def test_svg_layout_renderer_auto_font_size_from_bbox(tmp_path: Path) -> None:
     """When data-bbox-width/height are present, font-size is calculated automatically."""
     import xml.etree.ElementTree as _ET
