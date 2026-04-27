@@ -84,7 +84,7 @@ def test_svg_layout_renderer_rich_line_emits_tspan_with_bold(tmp_path: Path) -> 
     assert bold_tspans[0].text == "S4"
 
 
-def test_svg_layout_renderer_strikethrough_span(tmp_path: Path) -> None:
+def test_svg_layout_renderer_strikethrough_span_sets_text_decoration(tmp_path: Path) -> None:
     import xml.etree.ElementTree as _ET
 
     template = _simple_svg(tmp_path)
@@ -95,7 +95,7 @@ def test_svg_layout_renderer_strikethrough_span(tmp_path: Path) -> None:
     )
     block = DashboardTextBlock(slot="slot", lines=(rich_line,))
 
-    # The marking step: _apply_text_block sets text-decoration on the tspan.
+    # _apply_text_block must set text-decoration="line-through" on the struck tspan.
     tree = _ET.parse(template)
     root = tree.getroot()
     SvgLayoutRenderer()._apply_text_block(root, block)
@@ -106,11 +106,9 @@ def test_svg_layout_renderer_strikethrough_span(tmp_path: Path) -> None:
     assert "10:15" in struck[0].text
 
 
-def test_svg_layout_renderer_strikethrough_injects_line_element(tmp_path: Path) -> None:
-    """Full render: a struck span must produce a <line> element in the output SVG."""
-    import xml.etree.ElementTree as _ET
-    from epaper_dashboard_service.adapters.layout.svg import _inject_strikethrough_lines, SVG_NS
-
+def test_svg_layout_renderer_strikethrough_renders_without_error(tmp_path: Path) -> None:
+    """Full render with a struck span must produce a valid image (rsvg-convert renders
+    text-decoration natively, so no injected <line> workaround is needed)."""
     template = _simple_svg(tmp_path)
     rich_line = (
         TextSpan(text="S3", bold=True),
@@ -119,15 +117,41 @@ def test_svg_layout_renderer_strikethrough_injects_line_element(tmp_path: Path) 
     )
     block = DashboardTextBlock(slot="slot", lines=(rich_line,))
 
-    tree = _ET.parse(template)
-    root = tree.getroot()
-    SvgLayoutRenderer()._apply_text_block(root, block)
-    text_el = next(el for el in root.iter() if el.get("id") == "slot")
-    _inject_strikethrough_lines(root, text_el)
+    image = SvgLayoutRenderer().render(template_path=template, blocks=(block,), width=200, height=100)
+    assert image.size == (200, 100)
 
-    line_els = [el for el in root.iter() if el.tag == f"{{{SVG_NS}}}line"]
-    assert len(line_els) == 1, "Expected exactly one <line> element for the struck span"
-    assert line_els[0].get("stroke") == "black"
+
+def test_svg_layout_renderer_strikethrough_differs_from_plain(tmp_path: Path) -> None:
+    """A struck span must produce a visually different image than the same text without strike."""
+    def _make_template(tmp: Path, name: str) -> Path:
+        t = tmp / name
+        t.write_text(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="60">'
+            '<rect width="200" height="60" fill="white" />'
+            '<text id="slot" x="10" y="35" font-size="20" font-family="sans-serif">placeholder</text>'
+            "</svg>",
+            encoding="utf-8",
+        )
+        return t
+
+    renderer = SvgLayoutRenderer()
+
+    struck_block = DashboardTextBlock(
+        slot="slot",
+        lines=((TextSpan(text="10:15", strikethrough=True),),),
+    )
+    plain_block = DashboardTextBlock(
+        slot="slot",
+        lines=((TextSpan(text="10:15"),),),
+    )
+
+    img_strike = renderer.render(_make_template(tmp_path, "a.svg"), (struck_block,), 200, 60)
+    img_plain = renderer.render(_make_template(tmp_path, "b.svg"), (plain_block,), 200, 60)
+
+    pixels_strike = img_strike.tobytes()
+    pixels_plain = img_plain.tobytes()
+    diff = sum(1 for a, b in zip(pixels_strike, pixels_plain) if a != b)
+    assert diff > 5, "Strikethrough rendering must produce pixels different from plain text"
 
 
 def test_svg_layout_renderer_auto_font_size_from_bbox(tmp_path: Path) -> None:

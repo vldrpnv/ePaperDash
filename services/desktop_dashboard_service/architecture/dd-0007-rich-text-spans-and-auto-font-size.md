@@ -46,3 +46,4 @@ The heuristic is calibrated for proportional sans-serif fonts.  It is intentiona
 - The existing plain-string path in the SVG renderer is unchanged; new functionality is additive.
 - Operators can control per-panel text sizing either by specifying `font-size` in `renderer_config` or by declaring a bounding box in the SVG template.
 - The heuristic may under-size text slightly for narrow characters or short line counts; it can be tuned by adjusting `_CHAR_WIDTH_RATIO` and `_LINE_HEIGHT_RATIO` in `svg.py`.
+- The `text-decoration="line-through"` attribute is emitted directly on struck `<tspan>` elements.  The renderer (rsvg-convert / librsvg, see ADR-007) renders it natively — no post-processing injection of `<line>` elements is required.
