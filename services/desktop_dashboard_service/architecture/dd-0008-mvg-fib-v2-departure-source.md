@@ -1,4 +1,4 @@
-# DD-008: Use MVG FIB v2 API for Munich S-Bahn/MVV departure data
+# DD-008: Use MVG BGW-PT v3 API for Munich S-Bahn/MVV departure data
 
 ## Status
 
@@ -12,7 +12,7 @@ Several API options were considered, ranked by preference (MVV > DB > general):
 
 | Option | Registration | Coverage | Stability |
 |--------|-------------|----------|-----------|
-| MVG FIB v2 (`www.mvg.de/api/fib/v2`) | None | Munich S-Bahn, U-Bahn, Tram, Bus, regional MVV | Unofficial; widely used by community projects |
+| MVG BGW-PT v3 (`www.mvg.de/api/bgw-pt/v3`) | None | Munich S-Bahn, U-Bahn, Tram, Bus, regional MVV | Unofficial; widely used by community projects |
 | DB Timetables / RIS Boards API | Required (developer.db.de) | Germany-wide including S-Bahn | Official but gated |
 | Google Transit | Required | Variable | General-purpose |
 

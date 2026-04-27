@@ -21,7 +21,13 @@ A new `TextSpan` dataclass is added to the domain models:
 TextSpan(text: str, bold: bool = False, strikethrough: bool = False)
 ```
 
-`DashboardTextBlock.lines` is typed as `tuple[str | tuple[TextSpan, ...], ...]`.  Plain string lines continue to work without change; rich lines are `tuple[TextSpan, ...]` and are emitted as one `<tspan>` element per span, carrying `font-weight="bold"` or `text-decoration="line-through"` as appropriate.
+`DashboardTextBlock.lines` is typed as `tuple[str | RichLine | StyledLine, ...]` where:
+
+- `str` — plain text line, rendered as before.
+- `RichLine = tuple[TextSpan, ...]` — inline-formatted line; each `TextSpan` is emitted as one `<tspan>` element carrying `font-weight="bold"` or `text-decoration="line-through"` as appropriate.
+- `StyledLine(spans, font_size, dy)` — a `RichLine` with optional per-line SVG attribute overrides:
+  - `font_size: int | None` — when set, the SVG renderer emits a `font-size` attribute on the outer `<tspan>` wrapper, overriding the parent `<text>` element font size for that line only.
+  - `dy: str | None` — when set, replaces the default `1.2em` line-advance used by the SVG renderer, allowing custom spacing above a specific line.
 
 This change is backward-compatible: all existing callers that pass plain strings are unaffected.
 
