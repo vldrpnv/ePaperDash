@@ -46,6 +46,9 @@ The CLI currently accepts `--config <path>` and performs the following steps:
 
 A valid configuration currently requires:
 
+- `[service]`
+  - optional `interval_seconds` with default `300`
+  - optional `locale` with default `"de"` (German); set to `"en"` for English
 - `[layout]`
   - `template`
   - optional `preview_output`
@@ -126,7 +129,29 @@ Font rendering in `weather_block` uses bundled DejaVu Sans TTF files in `adapter
 - `calendar_text`
 - `weather_text` (icon-based weather timeline, SVG text output)
 - `weather_block` (self-contained PIL image: today overview + 4-h blocks + tomorrow row)
-- `train_departures_text` — the station name header is a **bold** `RichLine`; each departure row is also a `RichLine` with: bold line label, destination (direction), scheduled time; delayed departures show the scheduled time as strikethrough followed by the actual time; cancelled departures show the scheduled time as strikethrough and append "Cancelled"
+- `train_departures_text` — the station name header is a **bold** `RichLine`; each departure row is also a `RichLine` with: bold line label, destination (direction), scheduled time; delayed departures show the scheduled time as strikethrough followed by the actual time; cancelled departures show the scheduled time as strikethrough and append the localized cancellation label
+
+## Internationalization
+
+The service supports locale-based translation of all user-visible text.
+
+- A `Translations` value object (`domain/i18n.py`) carries every translatable string as a typed field with English defaults.
+- Built-in locales are registered in `adapters/i18n.py`: `"en"` (English) and `"de"` (German).
+- The active locale is selected by `service.locale` in the TOML configuration (default `"de"`).
+- `bootstrap.build_application` resolves the `Translations` from the locale and injects it into `CalendarSourcePlugin`, `TrainDepartureTextRenderer`, `WeatherBlockRenderer`, and `DashboardApplicationService`.
+- Adding a new locale requires only a new `Translations` instance and a new entry in `adapters/i18n.LOCALES`; no other code changes are needed.
+
+### Translated strings
+
+| Component | Default (German) | English |
+|---|---|---|
+| Cancelled train departure | `"Entfällt"` | `"Cancelled"` |
+| Tomorrow weather row header | `"Morgen"` | `"Tomorrow"` |
+| Block time label (next-day) | `"mo"` prefix | `"tmrw"` prefix |
+| Weather condition labels | German | English (as received from source) |
+| Calendar weekday names | German (e.g. `"Montag"`) | strftime `%A` |
+| Calendar month names | German (e.g. `"März"`) | strftime `%B` |
+| Last-update timestamp | `"Letzte Aktualisierung: …"` | `"Last update: …"` |
 
 ## Output contract
 
@@ -154,5 +179,8 @@ Font rendering in `weather_block` uses bundled DejaVu Sans TTF files in `adapter
 - `weather_forecast` can fetch forecasts for Eichenau (or any configured coordinates) from `open_meteo`, `met_no`, or `openweather` through one source plugin contract.
 - The weather timeline carries provider precision and supports source-level coarsening when `source_config.precision_hours` is configured.
 - `weather_text` renders icon-led forecast lines (without condition words such as "Cloudy") and supports display precision coarsening through `renderer_config.precision_hours`.
-- If the layout contains a `<text id="last_update">` element, each generated dashboard includes a `Last update: YYYY-MM-DD HH:MM:SS ±HHMM` line using the host local timezone offset.
+- If the layout contains a `<text id="last_update">` element, each generated dashboard includes a localized timestamp line using the host local timezone offset.  With the default German locale the prefix is `"Letzte Aktualisierung: YYYY-MM-DD HH:MM:SS ±HHMM"`.
 - If the layout does not contain `last_update`, dashboard generation continues without errors and without injecting an extra slot.
+- When `service.locale = "de"` (the default), all user-visible text is rendered in German.
+- When `service.locale = "en"`, all user-visible text is rendered in English.
+- When an unknown locale is configured, the service falls back to English without raising an error.

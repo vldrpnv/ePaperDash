@@ -27,6 +27,7 @@ from typing import TYPE_CHECKING
 
 from PIL import Image, ImageDraw, ImageFont
 
+from epaper_dashboard_service.domain.i18n import ENGLISH, Translations
 from epaper_dashboard_service.domain.models import (
     DashboardTextBlock,
     ImagePlacement,
@@ -120,10 +121,12 @@ class WeatherBlockRenderer(RendererPlugin):
         icon_provider: WeatherIconProvider,
         font_path: Path | None = None,
         bold_font_path: Path | None = None,
+        translations: Translations | None = None,
     ) -> None:
         self._icon_provider = icon_provider
         self._font_path = font_path or _DEFAULT_FONT
         self._bold_font_path = bold_font_path or _BOLD_FONT
+        self._translations = translations or ENGLISH
 
     def render(
         self, data: WeatherForecast, panel: PanelDefinition
@@ -163,6 +166,7 @@ class WeatherBlockRenderer(RendererPlugin):
             font_path, bold_font_path, base_font_size,
             icon_size_factor, tomorrow_icon_size_factor,
             precip_prob_threshold, precip_mm_threshold,
+            self._translations,
         )
 
         return (ImagePlacement(image=canvas, x=x, y=y),)
@@ -194,7 +198,9 @@ def _draw_weather_block(
     tomorrow_icon_size_factor: float = 1.0,
     precip_prob_threshold: int = 40,
     precip_mm_threshold: float = 0.1,
+    translations: Translations | None = None,
 ) -> None:
+    tr = translations or ENGLISH
     lo = _compute_layout(height, base_font_size)
     icon_size = max(16, int(lo["icon_size"] * icon_size_factor))
     small_icon_size = max(16, int(lo["small_icon_size"] * tomorrow_icon_size_factor))
@@ -214,7 +220,7 @@ def _draw_weather_block(
     # -----------------------------------------------------------------------
     if today_periods:
         _draw_row1(draw, today_periods, lo["row1_y"], width, font_lg,
-                   precip_prob_threshold, precip_mm_threshold)
+                   precip_prob_threshold, precip_mm_threshold, tr)
 
     # -----------------------------------------------------------------------
     # Separator line between row 1 and row 2
@@ -224,7 +230,7 @@ def _draw_weather_block(
     # -----------------------------------------------------------------------
     # Row 2: three smart 4-hour blocks
     # -----------------------------------------------------------------------
-    blocks = _select_weather_blocks(data.periods, now)
+    blocks = _select_weather_blocks(data.periods, now, tr)
     col_width = width // 3
     for col_idx, block in enumerate(blocks[:3]):
         block_x = col_idx * col_width
@@ -246,7 +252,7 @@ def _draw_weather_block(
     if tomorrow_periods:
         _draw_row3(draw, canvas, tomorrow_periods, lo["row3_y"], width, height,
                    small_icon_size, icon_provider, font_row3, font_sm,
-                   precip_prob_threshold, precip_mm_threshold)
+                   precip_prob_threshold, precip_mm_threshold, tr)
 
 
 def _draw_row1(
@@ -257,7 +263,9 @@ def _draw_row1(
     font: ImageFont.FreeTypeFont | ImageFont.ImageFont,
     precip_prob_threshold: int = 40,
     precip_mm_threshold: float = 0.1,
+    translations: Translations | None = None,
 ) -> None:
+    tr = translations or ENGLISH
     temps = [p.temperature_c for p in periods]
     t_min = min(temps)
     t_max = max(temps)
@@ -265,7 +273,7 @@ def _draw_row1(
     total_mm = sum(p.precipitation_mm for p in periods)
     max_prob = max(p.precipitation_probability_percent for p in periods)
 
-    text = f"{condition}   {t_min:.0f}°\u2013{t_max:.0f}°C"
+    text = f"{tr.condition(condition)}   {t_min:.0f}°\u2013{t_max:.0f}°C"
     if max_prob >= precip_prob_threshold or total_mm > precip_mm_threshold:
         text += f"   {total_mm:.1f}mm ({max_prob}%)"
 
@@ -285,7 +293,9 @@ def _draw_row3(
     font_sm: ImageFont.FreeTypeFont | ImageFont.ImageFont,
     precip_prob_threshold: int = 40,
     precip_mm_threshold: float = 0.1,
+    translations: Translations | None = None,
 ) -> None:
+    tr = translations or ENGLISH
     temps = [p.temperature_c for p in periods]
     t_min = min(temps)
     t_max = max(temps)
@@ -304,7 +314,7 @@ def _draw_row3(
         draw.text((10, y + (small_icon_size - 16) // 2), icon_char, font=font_md, fill=0)
         text_x = 10 + 22
 
-    text = f"Tomorrow: {condition}  {t_min:.0f}\u2013{t_max:.0f}\u00b0C"
+    text = f"{tr.tomorrow}: {tr.condition(condition)}  {t_min:.0f}\u2013{t_max:.0f}\u00b0C"
     if max_prob >= precip_prob_threshold or total_mm > precip_mm_threshold:
         text += f"  {total_mm:.1f}mm ({max_prob}%)"
     row_text_y = y + (small_icon_size - 14) // 2
@@ -425,6 +435,7 @@ class _WeatherBlock:
 def _select_weather_blocks(
     periods: tuple[WeatherPeriod, ...],
     now: datetime,
+    translations: Translations | None = None,
 ) -> list[_WeatherBlock]:
     """Return three ``_WeatherBlock`` instances for display in row 2.
 
@@ -451,6 +462,7 @@ def _select_weather_blocks(
       15:00  → 15-19, 19-23, 23-03
       20:00  → 20-00, 00-04, 04-08
     """
+    tr = translations or ENGLISH
     local_now = now.astimezone()
     today = local_now.date()
     tomorrow = today + timedelta(days=1)
@@ -502,7 +514,7 @@ def _select_weather_blocks(
         end_label = (block_hour + 4) % 24
         label = f"{block_hour:02d}\u2013{end_label:02d}"
         if block_date != today:
-            label = "tmrw " + label
+            label = f"{tr.tomorrow_short} {label}"
 
         if not block_periods:
             blocks.append(

@@ -61,6 +61,7 @@ def load_configuration(config_path: Path) -> DashboardConfiguration:
     service_section = raw.get("service", {})
     service = ServiceConfig(
         interval_seconds=int(service_section.get("interval_seconds", 300)),
+        locale=str(service_section.get("locale", "de")),
     )
 
     return DashboardConfiguration(layout=layout, mqtt=mqtt, panels=panels, service=service)

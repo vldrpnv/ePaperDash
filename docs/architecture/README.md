@@ -17,6 +17,7 @@ This directory captures the current architectural and technical design decisions
 | `ADR-004-use-a-one-shot-wake-render-sleep-cycle.md` | Keeps the firmware lifecycle as a single `setup()`-driven wake → work → sleep transaction. | You are restructuring control flow, adding long-lived runtime behavior, or changing retry strategy. |
 | `ADR-005-allocate-the-image-buffer-per-cycle.md` | Allocates the 48,000-byte image buffer only during the active cycle, then frees it before sleep. | You are changing memory ownership, buffer lifetime, or large payload handling. |
 | `ADR-006-use-gxepd2-with-a-configurable-display-model.md` | Uses GxEPD2 as the display abstraction with a documented alternate panel model. | You are changing display drivers, render primitives, or panel compatibility assumptions. |
+| `ADR-007-internationalization-support.md` | Adds locale-based i18n to the desktop service; German is the default locale. | You are changing displayed text, adding a new language, or modifying the locale configuration surface. |
 
 ## Design decision index
 
