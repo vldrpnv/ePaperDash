@@ -22,6 +22,10 @@
   <!-- Image slot: top-right corner -->
   <image id="image_pool" x="590" y="10" width="200" height="148" />
 
+  <!-- Clock: top area of right column, left of the image slot -->
+  <text id="clock" x="310" y="100" font-family="Arial, sans-serif" font-size="72" fill="black"
+        data-bbox-width="270" data-bbox-height="120" />
+
   <!-- Weather block: right column, composited at runtime -->
   <image id="weather_block" x="310" y="163" width="482" height="312" />
 

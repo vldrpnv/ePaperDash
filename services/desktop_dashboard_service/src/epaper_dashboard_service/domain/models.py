@@ -90,6 +90,11 @@ class ImagePlacement:
 
 
 @dataclass(frozen=True)
+class ClockTime:
+    current_time: datetime
+
+
+@dataclass(frozen=True)
 class TrainDeparture:
     line: str
     destination: str

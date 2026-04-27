@@ -18,6 +18,16 @@ publish_retry_attempts = 3
 publish_retry_delay_seconds = 1.0
 
 [[panels]]
+source = "clock"
+renderer = "clock_text"
+slot = "clock"
+[panels.source_config]
+timezone = "Europe/Berlin"
+[panels.renderer_config]
+font-size = "72"
+font-weight = "700"
+
+[[panels]]
 source = "calendar"
 renderer = "calendar_text"
 slot = "calendar"

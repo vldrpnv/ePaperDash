@@ -19,3 +19,6 @@ This directory captures the current specification and the design decisions for `
 - `adr-0004-source-failure-isolation-and-slot-clearing.md` — isolate transient source failures to the affected panel and clear unavailable slots
 - `adr-0005-bounded-mqtt-publish-retries-and-loop-recovery.md` — retry transient MQTT publish failures and keep the periodic loop running
 - `adr-0006-multi-provider-weather-and-precision-rendering.md` — unify weather providers behind one timeline contract and precision-aware icon rendering
+- `dd-0007-rich-text-spans-and-auto-font-size.md` — rich inline text spans and automatic font-size fitting within declared bounding boxes
+- `dd-0008-mvg-fib-v2-departure-source.md` — MVG departure source backed by the BGW-PT v3 API
+- `dd-0009-clock-source-and-renderer.md` — clock source and renderer plugins for timezone-aware wall-clock display

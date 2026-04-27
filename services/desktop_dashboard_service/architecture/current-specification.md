@@ -113,6 +113,9 @@ Font rendering in `weather_block` uses bundled DejaVu Sans TTF files in `adapter
 ### Sources
 
 - `calendar`
+- `clock`
+  - returns the current wall-clock time in the configured timezone
+  - supports `source_config.timezone` (IANA timezone name, default `UTC`)
 - `weather_forecast` with provider selection:
   - Open-Meteo (free hourly forecast)
   - MET Norway (free hourly forecast)
@@ -124,6 +127,7 @@ Font rendering in `weather_block` uses bundled DejaVu Sans TTF files in `adapter
 ### Renderers
 
 - `calendar_text`
+- `clock_text` — renders the current time from a `ClockTime` as a single plain-text line; the format is controlled by `renderer_config.time_format` (``strftime`` pattern, default ``%H:%M``).
 - `weather_text` (icon-based weather timeline, SVG text output)
 - `weather_block` (self-contained PIL image: today overview + 4-h blocks + tomorrow row)
 - `train_departures_text` — the station name header is a **bold** `RichLine`; each departure is rendered as a single timetable row (one `StyledLine`) containing the line label, departure time(s), and destination on the same line.  The line label is shown in **bold** for the first occurrence; subsequent departures sharing the same line label use space padding to keep the time column aligned.  Delayed departures show the scheduled time as strikethrough followed by the actual time in **bold**.  Cancelled departures show the scheduled time as strikethrough followed by "Cancelled" and the destination.
@@ -159,3 +163,6 @@ Font rendering in `weather_block` uses bundled DejaVu Sans TTF files in `adapter
 - `train_departures_text` renders each departure as a single timetable row: line label (bold on first occurrence of each line, space-padded on subsequent same-line rows), scheduled time, destination — all on one line.
 - Delayed departure actual times are shown in **bold**; cancelled departure scheduled times are shown as strikethrough.
 - The layout slot bounding boxes in `layout.svg` must not overlap; the left-column trains slot ends at x≤300 and the right-column weather block starts at x≥310.
+- The `clock` source returns the current time in the configured IANA timezone (defaults to `UTC`).
+- The `clock_text` renderer formats the time with the configured `time_format` (defaults to `%H:%M`) and produces a single `DashboardTextBlock` targeting the configured slot.
+- If `source_config.timezone` is set to an invalid IANA timezone name, the `clock` source raises an exception.
