@@ -109,6 +109,7 @@ The `analog_clock` renderer accepts the following `renderer_config` keys (all op
 - `validity_window_minutes` (int, default 5): width of the validity window.
 - `window_start_mode` (str, default `"start_at_next_minute"`): `"start_at_render_time"` or `"start_at_next_minute"`.
 - `label_mode` (str, default `"range"`): `"none"`, `"range"`, or `"approx"`.
+- `sector_style` (str, default `"outer_arc"`): `"outer_arc"` draws a thick arc along the clock rim spanning the full validity window; `"end_hand"` draws a single long hand pointing to the end of the validity window.
 - `show_hour_hand` (bool, default true).
 - `show_tick_marks` (bool, default true).
 - `x` / `y` (int, default 0): placement coordinates, overridden by SVG slot geometry.
@@ -182,7 +183,8 @@ Window start modes:
 - Delayed departure actual times are shown in **bold**; cancelled departure scheduled times are shown as strikethrough.
 - The layout slot bounding boxes in `layout.svg` must not overlap; the left-column trains slot ends at x≤300 and the right-column weather block starts at x≥310.
 - `analog_clock` renders an outer circle, optional tick marks, and an optional hour hand, with no minute hand and no second hand.
-- `analog_clock` renders a highlighted outer-arc sector representing the validity window duration.
+- `analog_clock` `sector_style = "outer_arc"` (default) renders a highlighted thick arc along the clock rim spanning the validity window.
+- `analog_clock` `sector_style = "end_hand"` renders a single long hand pointing to the end of the validity window instead of an arc.
 - `analog_clock` `window_start_mode = "start_at_next_minute"` rounds the render time up to the next whole minute when sub-minute components are present.  Example: render at 21:26:49 produces window 21:27–21:32.
 - `analog_clock` `window_start_mode = "start_at_render_time"` uses the exact render timestamp as the window start.
 - `analog_clock` `label_mode = "range"` renders a `HH:MM–HH:MM` label below the clock face.

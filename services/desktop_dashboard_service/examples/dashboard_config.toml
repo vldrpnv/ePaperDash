@@ -56,7 +56,8 @@ timezone = "Europe/Berlin"
 [panels.renderer_config]
 validity_window_minutes = "5"
 window_start_mode = "start_at_next_minute"
-label_mode = "range"
+label_mode = "approx"
+sector_style = "end_hand"
 show_hour_hand = "true"
 show_tick_marks = "true"
 

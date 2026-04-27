@@ -4,7 +4,7 @@ Produces a self-contained PIL image showing:
 - outer clock circle
 - optional hour hand (no minute or second hand)
 - optional 12-position tick marks (one per 5-minute mark)
-- highlighted outer arc representing the validity window
+- a validity-window indicator (sector arc or end hand)
 - optional text label showing the validity range
 
 The rendered image is suitable for black/white e-paper output.
@@ -16,6 +16,9 @@ Configuration keys in ``renderer_config`` (all optional):
                                ``"start_at_render_time"`` | ``"start_at_next_minute"``
 - ``label_mode``               str, default ``"range"``
                                ``"none"`` | ``"range"`` | ``"approx"``
+- ``sector_style``             str, default ``"outer_arc"``
+                               ``"outer_arc"`` — thick arc along the rim spanning the window
+                               ``"end_hand"``  — single long hand pointing to the window end
 - ``show_hour_hand``           bool, default True
 - ``show_tick_marks``          bool, default True
 - ``x``                        int, default 0   — placement x on the dashboard
@@ -104,6 +107,7 @@ def _draw_clock(
     label_mode: str,
     show_hour_hand: bool,
     show_tick_marks: bool,
+    sector_style: str = "outer_arc",
 ) -> Image.Image:
     """Render the analog clock face and return a grayscale PIL Image.
 
@@ -111,6 +115,10 @@ def _draw_clock(
     requires more horizontal space.  The image height equals ``size_px`` when
     ``label_mode`` is ``"none"``, and ``size_px + label_height`` otherwise,
     where *label_height* is derived proportionally from ``size_px``.
+
+    ``sector_style`` controls how the validity window is visualised:
+    - ``"outer_arc"``: a thick arc drawn along the clock rim spanning the window.
+    - ``"end_hand"``: a single long hand pointing to the end of the validity window.
     """
     font_size = max(10, size_px // 5)
     label_height = 0 if label_mode == "none" else font_size + 6
@@ -182,26 +190,35 @@ def _draw_clock(
             y1 = cy + inner * math.sin(angle_rad)
             draw.line([(x0, y0), (x1, y1)], fill=0, width=tick_width)
 
-    # 3. Draw outer arc sector (thick arc near the clock rim)
-    arc_thickness = max(4, size_px // 8)
-    arc_radius = radius - arc_thickness // 2 - 1
-    arc_bbox = [
-        cx - arc_radius,
-        cy - arc_radius,
-        cx + arc_radius,
-        cy + arc_radius,
-    ]
+    # 3. Draw validity-window indicator
     start_min = window_start.minute + window_start.second / 60.0
     end_min = window_end.minute + window_end.second / 60.0
-
     start_angle = _minute_fraction_to_pil_angle(start_min)
     end_angle = _minute_fraction_to_pil_angle(end_min)
 
-    # Ensure the arc is drawn clockwise from start to end.
-    if end_angle <= start_angle:
-        end_angle += 360.0
-
-    draw.arc(arc_bbox, start=start_angle, end=end_angle, fill=0, width=arc_thickness)
+    if sector_style == "end_hand":
+        # A single long hand pointing to the window end — like a minute hand
+        # but reaching close to the clock rim to clearly indicate the end position.
+        end_angle_rad = math.radians(end_angle)
+        end_hand_length = radius * 0.88
+        end_hand_width = max(2, size_px // 25)
+        ex = cx + end_hand_length * math.cos(end_angle_rad)
+        ey = cy + end_hand_length * math.sin(end_angle_rad)
+        draw.line([(cx, cy), (ex, ey)], fill=0, width=end_hand_width)
+    else:
+        # outer_arc (default): thick arc along the rim spanning the full window
+        arc_thickness = max(4, size_px // 8)
+        arc_radius = radius - arc_thickness // 2 - 1
+        arc_bbox = [
+            cx - arc_radius,
+            cy - arc_radius,
+            cx + arc_radius,
+            cy + arc_radius,
+        ]
+        # Ensure the arc is drawn clockwise from start to end.
+        if end_angle <= start_angle:
+            end_angle += 360.0
+        draw.arc(arc_bbox, start=start_angle, end=end_angle, fill=0, width=arc_thickness)
 
     # 4. Hour hand
     if show_hour_hand:
@@ -249,6 +266,7 @@ class AnalogClockRenderer(RendererPlugin):
         validity_window_minutes = int(cfg.get("validity_window_minutes", 5))
         window_start_mode = str(cfg.get("window_start_mode", "start_at_next_minute"))
         label_mode = str(cfg.get("label_mode", "range"))
+        sector_style = str(cfg.get("sector_style", "outer_arc"))
         show_hour_hand = _parse_bool(cfg.get("show_hour_hand", True))
         show_tick_marks = _parse_bool(cfg.get("show_tick_marks", True))
         x = int(cfg.get("x", 0))
@@ -262,6 +280,7 @@ class AnalogClockRenderer(RendererPlugin):
             label_mode=label_mode,
             show_hour_hand=show_hour_hand,
             show_tick_marks=show_tick_marks,
+            sector_style=sector_style,
         )
 
         return (ImagePlacement(image=image, x=x, y=y),)

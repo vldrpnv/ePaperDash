@@ -259,6 +259,55 @@ def test_renderer_with_start_at_render_time_mode() -> None:
 
 
 # ---------------------------------------------------------------------------
+# sector_style
+# ---------------------------------------------------------------------------
+
+def test_sector_style_outer_arc_does_not_raise() -> None:
+    """sector_style='outer_arc' (default) must not raise."""
+    renderer = AnalogClockRenderer()
+    data = ClockData(render_time=_dt(21, 26, 49))
+    result = renderer.render(data, _make_panel(sector_style="outer_arc"))
+    assert isinstance(result[0], ImagePlacement)
+
+
+def test_sector_style_end_hand_does_not_raise() -> None:
+    """sector_style='end_hand' must not raise and must return an ImagePlacement."""
+    renderer = AnalogClockRenderer()
+    data = ClockData(render_time=_dt(21, 26, 49))
+    result = renderer.render(data, _make_panel(sector_style="end_hand"))
+    assert isinstance(result[0], ImagePlacement)
+
+
+def test_sector_style_end_hand_image_has_correct_dimensions() -> None:
+    """end_hand image must have the same dimensions as outer_arc for equal configs."""
+    renderer = AnalogClockRenderer()
+    data = ClockData(render_time=_dt(10, 0, 0))
+    arc = renderer.render(data, _make_panel(size_px=80, label_mode="none", sector_style="outer_arc"))[0]
+    hand = renderer.render(data, _make_panel(size_px=80, label_mode="none", sector_style="end_hand"))[0]
+    assert arc.image.size == hand.image.size
+
+
+def test_sector_style_end_hand_is_not_blank() -> None:
+    """end_hand image must not be pure white — the hand must produce dark pixels."""
+    renderer = AnalogClockRenderer()
+    data = ClockData(render_time=_dt(21, 26, 49))
+    result = renderer.render(data, _make_panel(size_px=80, sector_style="end_hand"))
+    pixels = list(result[0].image.getdata())
+    assert any(p < 200 for p in pixels), "end_hand clock rendered as blank white image"
+
+
+def test_sector_style_end_hand_with_label_mode_range() -> None:
+    """end_hand combined with a range label must not raise."""
+    renderer = AnalogClockRenderer()
+    data = ClockData(render_time=_dt(21, 26, 49))
+    result = renderer.render(
+        data, _make_panel(sector_style="end_hand", label_mode="range")
+    )
+    assert isinstance(result[0], ImagePlacement)
+    assert result[0].image.height > 80  # label adds height
+
+
+# ---------------------------------------------------------------------------
 # _parse_bool
 # ---------------------------------------------------------------------------
 
