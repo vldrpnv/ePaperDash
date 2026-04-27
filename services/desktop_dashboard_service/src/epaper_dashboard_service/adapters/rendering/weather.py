@@ -430,59 +430,93 @@ def _select_weather_blocks(
 
     Algorithm
     ---------
-    Define ``remaining = 22 - current_hour`` (hours left in today's 06-22 window).
+    Core hours are 06–22.  A today-slot is valid only when it starts at or
+    before 20 (so it ends at most at midnight; 20+4=24).  Nightly hours
+    (00–05) are never shown.
 
-    **remaining ≥ 12**: Three 4-h blocks fit inside today.  Distribute the
-    slack evenly as integer gaps between blocks so they spread across the rest
-    of the day:
-        slack = remaining - 12
-        B1 starts at current_hour
-        B2 starts at current_hour + 4 + ceil(slack/2)
-        B3 starts at current_hour + 8 + slack  (= 22 - 4)
+    **H <= 12** (three today-slots):
+        S3 = max(H + 8, 18)   ← last slot, anchored at 18 when H is small
+        S2 = S3 - 4
+        S1 = H
 
-    User examples:
-      06:00  remaining=16 slack=4  → 06-10, 12-16, 18-22
-      08:00  remaining=14 slack=2  → 08-12, 13-17, 18-22
+    **13 <= H <= 16** (two today + one tomorrow):
+        S1 = H
+        S2 = max(H + 4, 18)   ← second slot, at least 18
+        S3 = tomorrow 06
 
-    **remaining < 12**: Pack three contiguous 4-hour blocks from current_hour,
-    crossing midnight into tomorrow when needed.
+    **17 <= H <= 20** (one today + two tomorrow):
+        S1 = H
+        S2 = tomorrow 06
+        S3 = tomorrow 10
 
-    User examples:
-      15:00  → 15-19, 19-23, 23-03
-      20:00  → 20-00, 00-04, 04-08
+    **H >= 21 or H < 6** (all tomorrow):
+        (tomorrow 06), (tomorrow 10), (tomorrow 14)
+
+    Examples from spec:
+      09:00  → 09-13, 14-18, 18-22
+      10:00  → 10-14, 14-18, 18-22
+      11:00  → 11-15, 15-19, 19-23
+      12:00  → 12-16, 16-20, 20-00
+      13:00  → 13-17, 18-22, tmrw 06-10
+      14:00  → 14-18, 18-22, tmrw 06-10
+      15:00  → 15-19, 19-23, tmrw 06-10
+      16:00  → 16-20, 20-00, tmrw 06-10
+      17:00  → 17-21, tmrw 06-10, tmrw 10-14
+      20:00  → 20-00, tmrw 06-10, tmrw 10-14
+      21:00  → tmrw 06-10, tmrw 10-14, tmrw 14-18
     """
-    local_now = now.astimezone()
+    local_now = now  # use now's own timezone, not the system TZ, so that the
+    # hour is interpreted in the same zone as the periods (which are converted
+    # with now.tzinfo below).  Calling .astimezone() without args would silently
+    # convert to the machine's local timezone, producing wrong results whenever
+    # the caller passes a datetime in a different zone (e.g. during tests or
+    # when the service runs in UTC while the display is in a different zone).
     today = local_now.date()
     tomorrow = today + timedelta(days=1)
-    current_hour = local_now.hour
+    H = local_now.hour
 
-    remaining = 22 - current_hour  # hours remaining in today's day window
-
-    if remaining >= 12:
-        # Three 4-h blocks fit today — distribute slack evenly between them.
-        slack = remaining - 12          # hours available as gaps between 3 blocks
-        gap1 = -(-slack // 2)           # ceil(slack/2)
-        gap2 = slack // 2               # floor(slack/2)
+    if H < 6 or H >= 21:
+        # All three slots are on tomorrow, starting at core-hour boundaries.
         chosen: list[tuple[date, int]] = [
-            (today, current_hour),
-            (today, current_hour + 4 + gap1),
-            (today, current_hour + 8 + gap1 + gap2),
+            (tomorrow, 6),
+            (tomorrow, 10),
+            (tomorrow, 14),
+        ]
+    elif H <= 12:
+        # Three today-slots: anchor last slot at max(H+8, 18) so it never
+        # exceeds 20 (which would cross midnight), then place the middle slot
+        # 4 h before the last.
+        s3 = max(H + 8, 18)
+        s2 = s3 - 4
+        chosen = [
+            (today, H),
+            (today, s2),
+            (today, s3),
+        ]
+    elif H <= 16:
+        # Two today-slots + one tomorrow; second today-slot is at least 18
+        # so it falls in the late-afternoon window.
+        s2 = max(H + 4, 18)
+        chosen = [
+            (today, H),
+            (today, s2),
+            (tomorrow, 6),
         ]
     else:
-        # Pack three contiguous 4-hour blocks starting at current_hour, crossing midnight
-        # into tomorrow when needed.
-        chosen = []
-        for i in range(3):
-            h = current_hour + i * 4
-            if h < 24:
-                chosen.append((today, h))
-            else:
-                chosen.append((tomorrow, h - 24))
+        # 17 <= H <= 20: one today-slot + two tomorrow (next-day core slots).
+        chosen = [
+            (today, H),
+            (tomorrow, 6),
+            (tomorrow, 10),
+        ]
 
-    # Build a lookup: (date, hour) → list of periods that start in that hour
+    # Build a lookup: (date, hour) → list of periods that start in that hour.
+    # Convert all period start times to the same timezone as `now` so that
+    # date/hour comparisons are consistent regardless of the system timezone.
+    tz = local_now.tzinfo
     period_lookup: dict[tuple[date, int], list[WeatherPeriod]] = {}
     for p in periods:
-        local_start = p.start_time.astimezone()
+        local_start = p.start_time.astimezone(tz)
         key = (local_start.date(), local_start.hour)
         period_lookup.setdefault(key, []).append(p)
 
