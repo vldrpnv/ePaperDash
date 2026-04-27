@@ -26,7 +26,7 @@ timezone = "Europe/Berlin"
 day_of_week_format = "%A"
 month_format = "%B"
 [panels.renderer_config]
-font-size = "48"
+font-size = "28"
 font-weight = "700"
 
 [[panels]]
@@ -60,6 +60,7 @@ label_mode = "approx"
 sector_style = "end_hand"
 show_hour_hand = "true"
 show_tick_marks = "true"
+size_px = "72"
 
 [[panels]]
 source = "mvg_departures"

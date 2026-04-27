@@ -181,7 +181,7 @@ Window start modes:
 - If the layout does not contain `last_update`, dashboard generation continues without errors and without injecting an extra slot.
 - `train_departures_text` renders each departure as a single timetable row: line label (bold on first occurrence of each line, space-padded on subsequent same-line rows), scheduled time, destination — all on one line.
 - Delayed departure actual times are shown in **bold**; cancelled departure scheduled times are shown as strikethrough.
-- The layout slot bounding boxes in `layout.svg` must not overlap; the left-column trains slot ends at x≤300 and the right-column weather block starts at x≥310.
+- The layout slot bounding boxes in `layout.svg` must not overlap; the two-zone grid separates the left context rail (x 0–182) from the main content area (x 188–800), with the weather block in the main area top section and the transport timetable in the main area bottom section.
 - `analog_clock` renders an outer circle, optional tick marks, and an optional hour hand, with no minute hand and no second hand.
 - `analog_clock` `sector_style = "outer_arc"` (default) renders a highlighted thick arc along the clock rim spanning the validity window.
 - `analog_clock` `sector_style = "end_hand"` renders a single long hand pointing to the end of the validity window instead of an arc.
