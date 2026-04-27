@@ -6,6 +6,7 @@ height = 480
 
 [service]
 interval_seconds = 150
+locale = "de"
 
 [mqtt]
 host = "localhost"

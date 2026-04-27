@@ -9,6 +9,7 @@ from PIL import Image
 
 from epaper_dashboard_service.adapters.layout.svg import extract_image_slots, extract_text_slots
 from epaper_dashboard_service.domain.errors import SourceUnavailableError
+from epaper_dashboard_service.domain.i18n import ENGLISH, Translations
 from epaper_dashboard_service.domain.models import (
     DashboardConfiguration,
     DashboardTextBlock,
@@ -42,10 +43,17 @@ class DashboardBuildResult:
 
 
 class DashboardApplicationService:
-    def __init__(self, registry: PluginRegistry, layout_renderer: LayoutRenderer, publisher: DashboardPublisher) -> None:
+    def __init__(
+        self,
+        registry: PluginRegistry,
+        layout_renderer: LayoutRenderer,
+        publisher: DashboardPublisher,
+        translations: Translations | None = None,
+    ) -> None:
         self._registry = registry
         self._layout_renderer = layout_renderer
         self._publisher = publisher
+        self._translations = translations or ENGLISH
 
     def generate(self, configuration: DashboardConfiguration) -> DashboardBuildResult:
         """Render the dashboard and return the result without publishing."""
@@ -90,7 +98,7 @@ class DashboardApplicationService:
             text_blocks.append(
                 DashboardTextBlock(
                     slot="last_update",
-                    lines=(f"Last update: {timestamp}",),
+                    lines=(f"{self._translations.last_update}: {timestamp}",),
                 )
             )
 

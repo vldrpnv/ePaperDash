@@ -140,6 +140,7 @@ class ServiceConfig:
     """Runtime-loop settings for the cyclic dashboard service."""
 
     interval_seconds: int = 300
+    locale: str = "de"
 
 
 @dataclass(frozen=True)

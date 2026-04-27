@@ -24,7 +24,7 @@ def main() -> int:
 
     configuration = load_configuration(args.config.resolve())
     interval_seconds = args.interval or configuration.service.interval_seconds
-    application = build_application(configuration.mqtt)
+    application = build_application(configuration.mqtt, configuration.service)
 
     print(f"Starting dashboard service (interval={interval_seconds}s)")
 
