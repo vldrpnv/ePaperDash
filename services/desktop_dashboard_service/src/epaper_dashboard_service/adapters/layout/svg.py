@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from io import BytesIO
 from pathlib import Path
 from xml.etree import ElementTree as ET
@@ -7,7 +8,9 @@ from xml.etree import ElementTree as ET
 import cairosvg
 from PIL import Image
 
-from epaper_dashboard_service.domain.models import DashboardTextBlock, RichLine, TextSpan
+_log = logging.getLogger(__name__)
+
+from epaper_dashboard_service.domain.models import DashboardTextBlock, RichLine, StyledLine, TextSpan
 from epaper_dashboard_service.domain.ports import LayoutRenderer
 
 
@@ -42,8 +45,34 @@ def extract_image_slots(template_path: Path) -> dict[str, dict[str, int]]:
     return slots
 
 
+def extract_text_slots(template_path: Path) -> set[str]:
+    """Return the set of ``id`` values declared on ``<text>`` elements in the SVG.
+
+    Returns an empty set when the file does not exist.
+    """
+    if not template_path.exists():
+        return set()
+    tree = ET.parse(template_path)
+    root = tree.getroot()
+    slots: set[str] = set()
+    for element in root.iter():
+        if _local_name(element.tag) == "text":
+            slot_id = element.get("id")
+            if slot_id:
+                slots.add(slot_id)
+    return slots
+
+
 class SvgLayoutRenderer(LayoutRenderer):
-    def render(self, template_path: Path, blocks: tuple[DashboardTextBlock, ...], width: int, height: int) -> Image.Image:
+    def render(
+        self,
+        template_path: Path,
+        blocks: tuple[DashboardTextBlock, ...],
+        width: int,
+        height: int,
+        cleared_slots: tuple[str, ...] = (),
+        svg_output: Path | None = None,
+    ) -> Image.Image:
         tree = ET.parse(template_path)
         root = tree.getroot()
 
@@ -51,16 +80,43 @@ class SvgLayoutRenderer(LayoutRenderer):
         root.set("height", str(height))
         root.set("viewBox", f"0 0 {width} {height}")
 
+        # --- Layout validation (before any mutations) ---
+        bboxes = collect_slot_bboxes(root)
+        for slot_a, slot_b in check_slot_overlaps(bboxes):
+            _log.warning(
+                "Layout slots %r and %r have overlapping bounding boxes", slot_a, slot_b
+            )
+        for block in blocks:
+            element = self._find_element_by_id(root, block.slot)
+            if element is not None and _local_name(element.tag) == "text":
+                bbox_w = _parse_float(element.get("data-bbox-width"))
+                bbox_h = _parse_float(element.get("data-bbox-height"))
+                if bbox_w is not None and bbox_h is not None:
+                    plain_lines = [_line_text(line) for line in block.lines]
+                    if check_content_overflow(plain_lines, bbox_w, bbox_h):
+                        _log.warning(
+                            "Text block for slot %r overflows its bounding box (%.0f×%.0f)",
+                            block.slot,
+                            bbox_w,
+                            bbox_h,
+                        )
+
         # Remove <image> placeholder elements (those used as image-slot markers) so they
         # do not appear as broken-image icons in the rasterised output.
         for element in list(root):
             if _local_name(element.tag) == "image" and element.get("id"):
                 root.remove(element)
 
+        for slot in cleared_slots:
+            self._clear_text_slot(root, slot)
+
         for block in blocks:
             self._apply_text_block(root, block)
 
         svg_bytes = ET.tostring(root, encoding="utf-8", xml_declaration=True)
+        if svg_output is not None:
+            svg_output.parent.mkdir(parents=True, exist_ok=True)
+            svg_output.write_bytes(svg_bytes)
         png_bytes = cairosvg.svg2png(bytestring=svg_bytes, output_width=width, output_height=height)
         return Image.open(BytesIO(png_bytes)).convert("L")
 
@@ -69,6 +125,16 @@ class SvgLayoutRenderer(LayoutRenderer):
             if element.get("id") == element_id:
                 return element
         return None
+
+    def _clear_text_slot(self, root: ET.Element, slot: str) -> None:
+        element = self._find_element_by_id(root, slot)
+        if element is None:
+            return
+        if _local_name(element.tag) != "text":
+            return
+
+        element.text = ""
+        element[:] = []
 
     def _apply_text_block(self, root: ET.Element, block: DashboardTextBlock) -> None:
         element = self._find_element_by_id(root, block.slot)
@@ -94,7 +160,7 @@ class SvgLayoutRenderer(LayoutRenderer):
         if not block.lines:
             return
 
-        if len(block.lines) == 1:
+        if len(block.lines) == 1 and not isinstance(block.lines[0], StyledLine):
             _write_line(element, block.lines[0])
             return
 
@@ -103,8 +169,16 @@ class SvgLayoutRenderer(LayoutRenderer):
             tspan = ET.SubElement(element, f"{{{SVG_NS}}}tspan")
             tspan.set("x", x)
             if index > 0:
-                tspan.set("dy", "1.2em")
-            _write_line(tspan, line)
+                if isinstance(line, StyledLine) and line.dy is not None:
+                    tspan.set("dy", line.dy)
+                else:
+                    tspan.set("dy", "1.2em")
+            if isinstance(line, StyledLine):
+                if line.font_size is not None:
+                    tspan.set("font-size", str(line.font_size))
+                _write_line(tspan, line.spans)
+            else:
+                _write_line(tspan, line)
 
 
 def _write_line(parent: ET.Element, line: str | RichLine) -> None:
@@ -119,14 +193,18 @@ def _write_line(parent: ET.Element, line: str | RichLine) -> None:
         if span.bold:
             inner.set("font-weight", "bold")
         if span.strikethrough:
-            inner.set("text-decoration", "line-through")
+            # Use the CSS style attribute — CairoSVG renders text-decoration
+            # correctly via inline CSS but ignores it as a presentation attribute.
+            inner.set("style", "text-decoration: line-through")
         inner.text = span.text
 
 
-def _line_text(line: str | RichLine) -> str:
+def _line_text(line: str | RichLine | StyledLine) -> str:
     """Return the plain-text content of a line for measurement purposes."""
     if isinstance(line, str):
         return line
+    if isinstance(line, StyledLine):
+        return "".join(span.text for span in line.spans)
     return "".join(span.text for span in line)
 
 
@@ -141,6 +219,74 @@ def _fit_font_size(lines: list[str], bbox_width: float, bbox_height: float) -> i
     from_width = bbox_width / (max_chars * _CHAR_WIDTH_RATIO)
     from_height = bbox_height / (num_lines * _LINE_HEIGHT_RATIO)
     return max(_MIN_FONT_SIZE, min(_MAX_FONT_SIZE, int(min(from_width, from_height))))
+
+
+def collect_slot_bboxes(root: ET.Element) -> dict[str, tuple[float, float, float, float]]:
+    """Return ``{id: (x, y, width, height)}`` for every slot with a known bounding box.
+
+    Covered cases:
+
+    * ``<text>`` elements that carry both ``data-bbox-width`` and ``data-bbox-height``.
+    * ``<image>`` elements with explicit ``width`` and ``height``.
+    """
+    bboxes: dict[str, tuple[float, float, float, float]] = {}
+    for element in root.iter():
+        tag = _local_name(element.tag)
+        slot_id = element.get("id")
+        if not slot_id:
+            continue
+        if tag == "text":
+            x = _parse_float(element.get("x")) or 0.0
+            y = _parse_float(element.get("y")) or 0.0
+            w = _parse_float(element.get("data-bbox-width"))
+            h = _parse_float(element.get("data-bbox-height"))
+            if w is not None and h is not None:
+                bboxes[slot_id] = (x, y, w, h)
+        elif tag == "image":
+            x = _parse_float(element.get("x")) or 0.0
+            y = _parse_float(element.get("y")) or 0.0
+            w = _parse_float(element.get("width")) or 0.0
+            h = _parse_float(element.get("height")) or 0.0
+            if w > 0 and h > 0:
+                bboxes[slot_id] = (x, y, w, h)
+    return bboxes
+
+
+def check_slot_overlaps(
+    bboxes: dict[str, tuple[float, float, float, float]],
+) -> list[tuple[str, str]]:
+    """Return a list of ``(id_a, id_b)`` pairs whose bounding boxes share area."""
+    ids = list(bboxes)
+    overlapping: list[tuple[str, str]] = []
+    for i in range(len(ids)):
+        for j in range(i + 1, len(ids)):
+            if _rects_overlap(bboxes[ids[i]], bboxes[ids[j]]):
+                overlapping.append((ids[i], ids[j]))
+    return overlapping
+
+
+def check_content_overflow(lines: list[str], bbox_width: float, bbox_height: float) -> bool:
+    """Return ``True`` when the text cannot fit the bounding box even at ``_MIN_FONT_SIZE``.
+
+    Uses the same heuristic character-width and line-height ratios as ``_fit_font_size``.
+    """
+    if not lines:
+        return False
+    max_chars = max((len(line) for line in lines), default=1) or 1
+    num_lines = len(lines)
+    est_width = max_chars * _MIN_FONT_SIZE * _CHAR_WIDTH_RATIO
+    est_height = num_lines * _MIN_FONT_SIZE * _LINE_HEIGHT_RATIO
+    return est_width > bbox_width or est_height > bbox_height
+
+
+def _rects_overlap(
+    r1: tuple[float, float, float, float],
+    r2: tuple[float, float, float, float],
+) -> bool:
+    """Return ``True`` if two ``(x, y, w, h)`` rectangles share any area."""
+    x1, y1, w1, h1 = r1
+    x2, y2, w2, h2 = r2
+    return not (x1 + w1 <= x2 or x2 + w2 <= x1 or y1 + h1 <= y2 or y2 + h2 <= y1)
 
 
 def _parse_float(value: str | None) -> float | None:

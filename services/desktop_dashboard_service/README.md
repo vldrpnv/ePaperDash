@@ -11,10 +11,10 @@ Architecture notes, ADRs, and the current specification live in `architecture/`.
 - Plugin-based source and renderer registries
 - Initial source plugins:
   - calendar
-  - weather forecast (Open-Meteo)
+  - weather forecast (Open-Meteo, MET Norway, OpenWeather)
 - Initial renderer plugins:
   - calendar_text
-  - weather_text
+  - weather_text (icon-based timeline with configurable precision)
 - MQTT publisher compatible with the firmware topic payload
 
 ## Quick start
@@ -42,7 +42,7 @@ The service uses TOML. See `examples/dashboard_config.toml`.
 - `layout.template`: SVG file path
 - `layout.preview_output`: optional PNG preview path
 - `layout.width` / `layout.height`: output size
-- `mqtt.*`: MQTT publish settings
+- `mqtt.*`: MQTT publish settings, including `publish_retry_attempts` and `publish_retry_delay_seconds` for broker fault tolerance
 - `[[panels]]`: one panel per source plugin
 
 Each panel selects:
@@ -52,6 +52,36 @@ Each panel selects:
 - `slot`: SVG text element id to populate
 - `source_config`: source plugin configuration
 - `renderer_config`: renderer plugin configuration
+
+### Weather source configuration
+
+`source = "weather_forecast"` supports multiple free providers under one plugin:
+
+- `provider = "open_meteo"` (default): free hourly forecast, up to 7 days
+- `provider = "met_no"`: free hourly forecast (MET Norway API)
+- `provider = "openweather"`: free 3-hour forecast blocks (requires `api_key`)
+
+Common `source_config` keys:
+
+- `latitude`, `longitude` (required)
+- `location_name` (optional label)
+- `forecast_days` (optional, default `5`, max `7`)
+- `precision_hours` (optional coarsening at source level, must be a multiple of provider precision)
+
+Provider-specific keys:
+
+- Open-Meteo: optional `timezone`, optional `base_url`
+- MET Norway: optional `user_agent`, optional `base_url`
+- OpenWeather: required `api_key`, optional `base_url`
+
+### Weather renderer configuration
+
+`renderer = "weather_text"` renders icon-led forecast lines instead of condition words:
+
+- `precision_hours`: coarsen periods for display (for example `4` or `6`)
+- `days`: horizon to display (for example `3` to `7`)
+- `max_periods`: maximum rendered forecast lines
+- `show_provider`: append provider name to the location header
 
 ## Layouts
 

@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import dataclasses
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 
 from PIL import Image
 
-from epaper_dashboard_service.adapters.layout.svg import extract_image_slots
+from epaper_dashboard_service.adapters.layout.svg import extract_image_slots, extract_text_slots
+from epaper_dashboard_service.domain.errors import SourceUnavailableError
 from epaper_dashboard_service.domain.models import (
     DashboardConfiguration,
     DashboardTextBlock,
@@ -49,10 +51,13 @@ class DashboardApplicationService:
         """Render the dashboard and return the result without publishing."""
         text_blocks: list[DashboardTextBlock] = []
         image_placements: list[ImagePlacement] = []
+        cleared_slots: list[str] = []
+        template_path = Path(configuration.layout.template)
 
         # Read image-slot geometry declared in the SVG template.  These values are merged
         # into renderer_config so that image panels can be positioned purely from the SVG.
-        svg_image_slots = extract_image_slots(Path(configuration.layout.template))
+        svg_image_slots = extract_image_slots(template_path)
+        svg_text_slots = extract_text_slots(template_path)
 
         for panel in configuration.panels:
             # If the SVG defines geometry for this slot, merge it into renderer_config.
@@ -64,7 +69,11 @@ class DashboardApplicationService:
                 )
             source = self._registry.get_source(panel.source)
             renderer = self._registry.get_renderer(panel.renderer)
-            data = source.fetch(panel.source_config)
+            try:
+                data = source.fetch(panel.source_config)
+            except SourceUnavailableError:
+                cleared_slots.append(panel.slot)
+                continue
             if not isinstance(data, renderer.supported_type):
                 raise TypeError(
                     f"Renderer '{renderer.name}' cannot render '{type(data).__name__}' from source '{source.name}'"
@@ -75,11 +84,27 @@ class DashboardApplicationService:
                 else:
                     text_blocks.append(block)
 
+        if "last_update" in svg_text_slots:
+            local_now = datetime.now().astimezone()
+            timestamp = local_now.strftime("%Y-%m-%d %H:%M:%S %z")
+            text_blocks.append(
+                DashboardTextBlock(
+                    slot="last_update",
+                    lines=(f"Last update: {timestamp}",),
+                )
+            )
+
+        svg_output: Path | None = None
+        if configuration.layout.preview_output:
+            svg_output = Path(configuration.layout.preview_output).with_suffix(".svg")
+
         image = self._layout_renderer.render(
-            template_path=Path(configuration.layout.template),
+            template_path=template_path,
             blocks=tuple(text_blocks),
             width=configuration.layout.width,
             height=configuration.layout.height,
+            cleared_slots=tuple(cleared_slots),
+            svg_output=svg_output,
         )
 
         image = _composite_image_placements(image, tuple(image_placements))

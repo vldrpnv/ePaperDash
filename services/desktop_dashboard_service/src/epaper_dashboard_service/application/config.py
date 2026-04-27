@@ -42,6 +42,8 @@ def load_configuration(config_path: Path) -> DashboardConfiguration:
         password=mqtt_section.get("password"),
         qos=int(mqtt_section.get("qos", 1)),
         retain=bool(mqtt_section.get("retain", True)),
+        publish_retry_attempts=int(mqtt_section.get("publish_retry_attempts", 3)),
+        publish_retry_delay_seconds=float(mqtt_section.get("publish_retry_delay_seconds", 1.0)),
     )
     panels = tuple(
         PanelDefinition(

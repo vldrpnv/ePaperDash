@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 from urllib.parse import unquote
+from urllib.error import URLError
 
 import pytest
 
 from epaper_dashboard_service.adapters.sources.mvg import MvgDepartureSourcePlugin, _parse_time
+from epaper_dashboard_service.domain.errors import SourceUnavailableError
 
 
 # ---------------------------------------------------------------------------
@@ -87,6 +90,34 @@ def test_mvg_source_looks_up_station_and_uses_global_id() -> None:
     assert any("de:09174:6840" in unquote(u) for u in visited_urls), "departure URL should contain globalId"
 
 
+def test_mvg_source_uses_berlin_timezone_by_default() -> None:
+    plugin = MvgDepartureSourcePlugin(fetcher=_make_fetcher([_DEPARTURE_ON_TIME]))
+    result = plugin.fetch({"station_name": "Eichenau", "limit": 1})
+
+    dep = result.entries[0]
+    assert dep.scheduled_time.tzinfo == ZoneInfo("Europe/Berlin")
+    assert dep.scheduled_time == datetime(2024, 5, 3, 12, 0, 0, tzinfo=ZoneInfo("Europe/Berlin"))
+    assert dep.actual_time == datetime(2024, 5, 3, 12, 0, 0, tzinfo=ZoneInfo("Europe/Berlin"))
+
+
+def test_mvg_source_accepts_timezone_option() -> None:
+    visited_urls: list[str] = []
+
+    def fetcher(url: str):
+        visited_urls.append(url)
+        if "station" in url or "locations" in url:
+            return _STATION_RESPONSE
+        return [_DEPARTURE_ON_TIME]
+
+    plugin = MvgDepartureSourcePlugin(fetcher=fetcher)
+    result = plugin.fetch({"station_name": "Eichenau", "limit": 1, "timezone": "UTC"})
+
+    dep = result.entries[0]
+    assert dep.scheduled_time == datetime(2024, 5, 3, 10, 0, 0, tzinfo=timezone.utc)
+    assert dep.actual_time == datetime(2024, 5, 3, 10, 0, 0, tzinfo=timezone.utc)
+    assert any("timezone=UTC" in u for u in visited_urls)
+
+
 def test_mvg_source_raises_when_station_not_found() -> None:
     def fetcher(url: str):
         if "station" in url or "locations" in url:
@@ -165,3 +196,14 @@ def test_parse_time_epoch_ms() -> None:
 def test_parse_time_iso_string() -> None:
     result = _parse_time("2024-05-03T10:00:00Z")
     assert result == datetime(2024, 5, 3, 10, 0, 0, tzinfo=timezone.utc)
+
+
+def test_mvg_source_maps_network_failure_to_source_unavailable() -> None:
+    def fetcher(url: str):
+        if "station" in url or "locations" in url:
+            return _STATION_RESPONSE
+        raise URLError("network down")
+
+    plugin = MvgDepartureSourcePlugin(fetcher=fetcher)
+    with pytest.raises(SourceUnavailableError, match="mvg_departures source unavailable"):
+        plugin.fetch({"station_name": "Eichenau", "limit": 1})

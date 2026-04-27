@@ -27,11 +27,12 @@ Use the unofficial MVG FIB v2 REST API (`https://www.mvg.de/api/fib/v2/`) becaus
 
 The `MvgDepartureSourcePlugin`:
 1. Resolves the human-readable `station_name` from config to a `globalId` via `GET /station?query=`.
-2. Fetches departures via `GET /departure?globalId=&limit=&offsetInMinutes=`.
+2. Fetches departures via `GET /departure?globalId=&limit=&offsetInMinutes=` and includes a timezone preference query parameter when configured.
 3. Handles both `plannedDepartureTime` as epoch milliseconds and as ISO-8601 strings (the API format may vary).
 4. Handles both a bare JSON array response and a `{"departures": [...]}` wrapped response for resilience against API changes.
+5. Normalizes parsed planned and realtime departure times to a configured IANA timezone (default: `Europe/Berlin`) before handing data to renderers.
 
-Configuration keys: `station_name` (required), `limit` (default 5), `offset_minutes` (default 0), `base_url` (override for testing).
+Configuration keys: `station_name` (required), `limit` (default 5), `offset_minutes` (default 0), `timezone` (default `Europe/Berlin`), `base_url` (override for testing).
 
 ## Consequences
 
