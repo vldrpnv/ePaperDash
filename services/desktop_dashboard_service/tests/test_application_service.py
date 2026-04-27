@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import re
 
 from PIL import Image
 import pytest
@@ -9,6 +10,7 @@ from epaper_dashboard_service.adapters.layout.svg import SvgLayoutRenderer
 from epaper_dashboard_service.adapters.rendering.image import ImagePlacementRenderer
 from epaper_dashboard_service.adapters.sources.random_image import RandomImageSourcePlugin
 from epaper_dashboard_service.application.service import DashboardApplicationService, PluginRegistry, _encode_to_epaper_payload
+from epaper_dashboard_service.domain.errors import SourceUnavailableError
 from epaper_dashboard_service.domain.models import DashboardConfiguration, LayoutConfig, MqttConfig, PanelDefinition
 from epaper_dashboard_service.domain.ports import DashboardPublisher, LayoutRenderer, RendererPlugin, SourcePlugin
 
@@ -33,9 +35,11 @@ class FakeRenderer(RendererPlugin):
 class FakeLayoutRenderer(LayoutRenderer):
     def __init__(self) -> None:
         self.blocks = ()
+        self.cleared_slots = ()
 
-    def render(self, template_path: Path, blocks, width: int, height: int) -> Image.Image:
+    def render(self, template_path: Path, blocks, width: int, height: int, cleared_slots=(), svg_output=None) -> Image.Image:
         self.blocks = blocks
+        self.cleared_slots = cleared_slots
         return Image.new("L", (width, height), color=255)
 
 
@@ -213,4 +217,110 @@ def test_application_service_reads_image_slot_geometry_from_svg(tmp_path: Path) 
     # Centre of the 80x60 box at (50, 50) is (90, 80); the black image should be there.
     centre_pixel = result.image.getpixel((90, 80))
     assert centre_pixel < 128, "Centre of SVG-declared image box should be dark"
+
+
+class UnavailableSource(SourcePlugin):
+    name = "unavailable"
+
+    def fetch(self, config: dict[str, object]) -> object:
+        raise SourceUnavailableError("upstream timeout")
+
+
+def test_application_service_skips_unavailable_source_and_clears_slot() -> None:
+    layout_renderer = FakeLayoutRenderer()
+    service = DashboardApplicationService(
+        registry=PluginRegistry(
+            sources=(FakeSource(), UnavailableSource()),
+            renderers=(FakeRenderer(),),
+        ),
+        layout_renderer=layout_renderer,
+        publisher=FakePublisher(),
+    )
+    configuration = DashboardConfiguration(
+        layout=LayoutConfig(template="/tmp/layout.svg", width=800, height=480),
+        mqtt=MqttConfig(host="localhost", port=1883, topic="epaper/image"),
+        panels=(
+            PanelDefinition(
+                source="calendar",
+                renderer="calendar_text",
+                slot="calendar",
+                source_config={"value": "Tuesday"},
+                renderer_config={},
+            ),
+            PanelDefinition(
+                source="unavailable",
+                renderer="calendar_text",
+                slot="weather",
+                source_config={},
+                renderer_config={},
+            ),
+        ),
+    )
+
+    result = service.generate(configuration)
+
+    assert len(result.payload) == 800 * 480 // 8
+    assert tuple(block.slot for block in layout_renderer.blocks) == ("calendar",)
+    assert layout_renderer.cleared_slots == ("weather",)
+
+
+def test_application_service_adds_last_update_block_when_slot_exists(tmp_path: Path) -> None:
+    template = tmp_path / "layout.svg"
+    template.write_text(
+        """<svg xmlns="http://www.w3.org/2000/svg" width="800" height="480">
+          <rect width="800" height="480" fill="white" />
+          <text id="last_update" x="8" y="476" font-size="10" />
+        </svg>""",
+        encoding="utf-8",
+    )
+
+    layout_renderer = FakeLayoutRenderer()
+    service = DashboardApplicationService(
+        registry=PluginRegistry(sources=(), renderers=()),
+        layout_renderer=layout_renderer,
+        publisher=FakePublisher(),
+    )
+    configuration = DashboardConfiguration(
+        layout=LayoutConfig(template=str(template), width=800, height=480),
+        mqtt=MqttConfig(host="localhost", port=1883, topic="epaper/image"),
+        panels=(),
+    )
+
+    service.generate(configuration)
+
+    last_update_blocks = [block for block in layout_renderer.blocks if block.slot == "last_update"]
+    assert len(last_update_blocks) == 1
+    assert len(last_update_blocks[0].lines) == 1
+    assert isinstance(last_update_blocks[0].lines[0], str)
+    assert re.match(
+        r"^Last update: \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} [+-]\d{4}$",
+        last_update_blocks[0].lines[0],
+    )
+
+
+def test_application_service_skips_last_update_when_slot_missing(tmp_path: Path) -> None:
+    template = tmp_path / "layout.svg"
+    template.write_text(
+        """<svg xmlns="http://www.w3.org/2000/svg" width="800" height="480">
+          <rect width="800" height="480" fill="white" />
+          <text id="calendar" x="50" y="110" />
+        </svg>""",
+        encoding="utf-8",
+    )
+
+    layout_renderer = FakeLayoutRenderer()
+    service = DashboardApplicationService(
+        registry=PluginRegistry(sources=(), renderers=()),
+        layout_renderer=layout_renderer,
+        publisher=FakePublisher(),
+    )
+    configuration = DashboardConfiguration(
+        layout=LayoutConfig(template=str(template), width=800, height=480),
+        mqtt=MqttConfig(host="localhost", port=1883, topic="epaper/image"),
+        panels=(),
+    )
+
+    service.generate(configuration)
+
+    assert all(block.slot != "last_update" for block in layout_renderer.blocks)
 

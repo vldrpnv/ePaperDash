@@ -31,15 +31,18 @@ def main() -> int:
     last_payload_hash: str | None = None
     try:
         while True:
-            result = application.generate(configuration)
-            current_hash = hashlib.sha256(result.payload).hexdigest()
+            try:
+                result = application.generate(configuration)
+                current_hash = hashlib.sha256(result.payload).hexdigest()
 
-            if current_hash != last_payload_hash:
-                application.publish(result.payload)
-                last_payload_hash = current_hash
-                print(f"Published {len(result.payload)} bytes to {configuration.mqtt.topic} (hash={current_hash[:8]})")
-            else:
-                print("Dashboard unchanged, skipping publish")
+                if current_hash != last_payload_hash:
+                    application.publish(result.payload)
+                    last_payload_hash = current_hash
+                    print(f"Published {len(result.payload)} bytes to {configuration.mqtt.topic} (hash={current_hash[:8]})")
+                else:
+                    print("Dashboard unchanged, skipping publish")
+            except Exception as error:
+                print(f"Cycle failed: {error}")
 
             time.sleep(interval_seconds)
     except KeyboardInterrupt:

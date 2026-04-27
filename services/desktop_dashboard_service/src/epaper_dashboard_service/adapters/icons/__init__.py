@@ -1,0 +1,1 @@
+"""Weather icon provider adapters."""

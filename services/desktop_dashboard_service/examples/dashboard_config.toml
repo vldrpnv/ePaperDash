@@ -5,7 +5,7 @@ width = 800
 height = 480
 
 [service]
-interval_seconds = 300
+interval_seconds = 150
 
 [mqtt]
 host = "localhost"
@@ -14,6 +14,8 @@ topic = "epaper/image"
 client_id = "desktop-dashboard-service"
 retain = true
 qos = 1
+publish_retry_attempts = 3
+publish_retry_delay_seconds = 1.0
 
 [[panels]]
 source = "calendar"
@@ -29,15 +31,34 @@ font-weight = "700"
 
 [[panels]]
 source = "weather_forecast"
-renderer = "weather_text"
-slot = "weather"
+renderer = "weather_block"
+slot = "weather_block"
 [panels.source_config]
+provider = "open_meteo"
 location_name = "Eichenau"
 latitude = 48.167
 longitude = 11.317
 timezone = "Europe/Berlin"
+forecast_days = 5
+precision_hours = 1
 [panels.renderer_config]
-font-size = "34"
+icon_size_factor = "0.7"
+tomorrow_icon_size_factor = "1.2"
+precip_prob_threshold = "0"
+precip_mm_threshold = "0"
+
+[[panels]]
+source = "mvg_departures"
+renderer = "train_departures_text"
+slot = "trains"
+[panels.source_config]
+station_name = "Eichenau"
+limit = 5
+timezone = "Europe/Berlin"
+[panels.renderer_config]
+font-family = "Arial, sans-serif"
+fill = "black"
+departure-font-size = "18"
 
 [[panels]]
 source = "random_image"

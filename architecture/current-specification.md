@@ -36,12 +36,17 @@ The desktop service:
 1. loads TOML configuration
 2. resolves the SVG layout path and optional preview output path
 3. fetches data through named source plugins
+	- when a source is temporarily unavailable, only that panel is skipped
 4. renders the source data through named renderer plugins
 5. fills SVG `<text>` slots by element id
 6. rasterizes the SVG to an image
 7. converts the image to the firmware-compatible 1-bit payload
 8. optionally writes a preview image
 9. publishes the payload to MQTT
+
+The desktop service retries transient MQTT broker publish failures with bounded attempts per cycle and continues running after failed publish cycles.
+
+When a panel source is unavailable, the desktop service clears that panel's text slot so no stale block is rendered in the published image.
 
 ## Configuration surfaces
 

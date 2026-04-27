@@ -11,10 +11,10 @@ Architecture notes, ADRs, and the current specification live in `architecture/`.
 - Plugin-based source and renderer registries
 - Initial source plugins:
   - calendar
-  - weather forecast (Open-Meteo)
+  - weather forecast (Open-Meteo, MET Norway, OpenWeather)
 - Initial renderer plugins:
   - calendar_text
-  - weather_text
+  - weather_text (icon-based timeline with configurable precision)
 - MQTT publisher compatible with the firmware topic payload
 
 ## Quick start
@@ -42,7 +42,7 @@ The service uses TOML. See `examples/dashboard_config.toml`.
 - `layout.template`: SVG file path
 - `layout.preview_output`: optional PNG preview path
 - `layout.width` / `layout.height`: output size
-- `mqtt.*`: MQTT publish settings
+- `mqtt.*`: MQTT publish settings, including `publish_retry_attempts` and `publish_retry_delay_seconds` for broker fault tolerance
 - `[[panels]]`: one panel per source plugin
 
 Each panel selects:
@@ -53,10 +53,41 @@ Each panel selects:
 - `source_config`: source plugin configuration
 - `renderer_config`: renderer plugin configuration
 
+### Weather source configuration
+
+`source = "weather_forecast"` supports multiple free providers under one plugin:
+
+- `provider = "open_meteo"` (default): free hourly forecast, up to 7 days
+- `provider = "met_no"`: free hourly forecast (MET Norway API)
+- `provider = "openweather"`: free 3-hour forecast blocks (requires `api_key`)
+
+Common `source_config` keys:
+
+- `latitude`, `longitude` (required)
+- `location_name` (optional label)
+- `forecast_days` (optional, default `5`, max `7`)
+- `precision_hours` (optional coarsening at source level, must be a multiple of provider precision)
+
+Provider-specific keys:
+
+- Open-Meteo: optional `timezone`, optional `base_url`
+- MET Norway: optional `user_agent`, optional `base_url`
+- OpenWeather: required `api_key`, optional `base_url`
+
+### Weather renderer configuration
+
+`renderer = "weather_text"` renders icon-led forecast lines instead of condition words:
+
+- `precision_hours`: coarsen periods for display (for example `4` or `6`)
+- `days`: horizon to display (for example `3` to `7`)
+- `max_periods`: maximum rendered forecast lines
+- `show_provider`: append provider name to the location header
+
 ## Layouts
 
-The layout template is standard SVG. Each renderer writes text into a `<text>` element identified by the configured `slot`.
+The layout template is standard SVG. Two types of slots are supported:
 
-- Static SVG content such as shapes, lines, and embedded images can be part of the template. For example, a weather icon or appliance image can be placed directly in the SVG with standard SVG elements such as `<image>`.
-- The current plugin/rendering implementation populates text slots only. If you want source-driven images (for example, changing weather icons), the next step would be to add an image-capable renderer plugin and matching SVG slot handling.
-- Text does not auto-fit to a box today. Font sizing comes from the SVG template (`font-size`) and can be overridden per panel through `renderer_config` for supported text attributes such as `font-size`, `font-family`, `font-weight`, `fill`, and `text-anchor`.
+- **Text slots** (`<text id="...">`) — populated by text-based renderers (e.g. `calendar_text`, `weather_text`, `train_departures_text`).  Inline formatting (bold, strikethrough) is emitted as `<tspan>` children per `TextSpan`.  To auto-fit text to a bounding box, add `data-bbox-width` and `data-bbox-height` attributes to the `<text>` element; the renderer calculates an appropriate `font-size` automatically.  Per-renderer text attributes such as `font-size`, `font-family`, `font-weight`, `fill`, and `text-anchor` can be overridden via `renderer_config`.
+- **Image slots** (`<image id="...">`) — populated by image-based renderers (e.g. `random_image`, `weather_block`) that return an `ImagePlacement`.  The renderer composites a PIL image into the position declared by the SVG `<image>` element's `x`, `y`, `width`, and `height` attributes.  The `<image>` placeholder is stripped from the SVG before rasterisation so it does not appear in the final bitmap.
+
+Static SVG content such as shapes, dividers, and decorative elements can remain in the template unchanged.
