@@ -97,6 +97,27 @@ The `weather_block` renderer delegates icon rendering to a `WeatherIconProvider`
 
 Font rendering in `weather_block` uses bundled DejaVu Sans TTF files in `adapters/fonts/` and carries no system font dependency.  The font path can be overridden via `renderer_config.font_path`.
 
+The built-in `analog_clock` renderer accepts clock data and produces a single `ImagePlacement` — a self-contained PIL image composited onto the dashboard.  It renders:
+- An outer clock circle.
+- Optional 12-position tick marks (one per 5-minute position).
+- An optional hour hand (no minute hand, no second hand).
+- A highlighted outer-arc sector representing the validity window of the rendered dashboard image.
+- An optional text label below the clock showing the validity range.
+
+The `analog_clock` renderer accepts the following `renderer_config` keys (all optional):
+- `size_px` (int, default 80): diameter of the clock face in pixels.
+- `validity_window_minutes` (int, default 5): width of the validity window.
+- `window_start_mode` (str, default `"start_at_next_minute"`): `"start_at_render_time"` or `"start_at_next_minute"`.
+- `label_mode` (str, default `"range"`): `"none"`, `"range"`, or `"approx"`.
+- `sector_style` (str, default `"outer_arc"`): `"outer_arc"` draws a thick arc along the clock rim spanning the full validity window; `"end_hand"` draws a single long hand pointing to the end of the validity window.
+- `show_hour_hand` (bool, default true).
+- `show_tick_marks` (bool, default true).
+- `x` / `y` (int, default 0): placement coordinates, overridden by SVG slot geometry.
+
+Window start modes:
+- `start_at_next_minute`: if the render time has any sub-minute component, round up to the next whole minute; otherwise use the exact minute. Example: render at 21:26:49 → window 21:27–21:32.
+- `start_at_render_time`: use the exact render timestamp as the window start.
+
 ### Layout contract
 
 - Panels target SVG elements by `slot` id.
@@ -113,6 +134,7 @@ Font rendering in `weather_block` uses bundled DejaVu Sans TTF files in `adapter
 ### Sources
 
 - `calendar`
+- `clock` — returns a `ClockData` with the current timezone-aware `render_time`; supports `source_config.timezone` (IANA timezone name, default `"UTC"`)
 - `weather_forecast` with provider selection:
   - Open-Meteo (free hourly forecast)
   - MET Norway (free hourly forecast)
@@ -124,6 +146,7 @@ Font rendering in `weather_block` uses bundled DejaVu Sans TTF files in `adapter
 ### Renderers
 
 - `calendar_text`
+- `analog_clock` (self-contained PIL image: outer circle, tick marks, hour hand, outer-arc validity sector, optional range/approx label)
 - `weather_text` (icon-based weather timeline, SVG text output)
 - `weather_block` (self-contained PIL image: today overview + 4-h blocks + tomorrow row)
 - `train_departures_text` — the station name header is a **bold** `RichLine`; each departure is rendered as a single timetable row (one `StyledLine`) containing the line label, departure time(s), and destination on the same line.  The line label is shown in **bold** for the first occurrence; subsequent departures sharing the same line label use space padding to keep the time column aligned.  Delayed departures show the scheduled time as strikethrough followed by the actual time in **bold**.  Cancelled departures show the scheduled time as strikethrough followed by "Cancelled" and the destination.
@@ -159,3 +182,12 @@ Font rendering in `weather_block` uses bundled DejaVu Sans TTF files in `adapter
 - `train_departures_text` renders each departure as a single timetable row: line label (bold on first occurrence of each line, space-padded on subsequent same-line rows), scheduled time, destination — all on one line.
 - Delayed departure actual times are shown in **bold**; cancelled departure scheduled times are shown as strikethrough.
 - The layout slot bounding boxes in `layout.svg` must not overlap; the left-column trains slot ends at x≤300 and the right-column weather block starts at x≥310.
+- `analog_clock` renders an outer circle, optional tick marks, and an optional hour hand, with no minute hand and no second hand.
+- `analog_clock` `sector_style = "outer_arc"` (default) renders a highlighted thick arc along the clock rim spanning the validity window.
+- `analog_clock` `sector_style = "end_hand"` renders a single long hand pointing to the end of the validity window instead of an arc.
+- `analog_clock` `window_start_mode = "start_at_next_minute"` rounds the render time up to the next whole minute when sub-minute components are present.  Example: render at 21:26:49 produces window 21:27–21:32.
+- `analog_clock` `window_start_mode = "start_at_render_time"` uses the exact render timestamp as the window start.
+- `analog_clock` `label_mode = "range"` renders a `HH:MM–HH:MM` label below the clock face.
+- `analog_clock` `label_mode = "approx"` renders a `ca. HH:MM` label below the clock face.
+- `analog_clock` `label_mode = "none"` renders no label; image height equals `size_px`.
+- `clock` source returns a timezone-aware `ClockData.render_time` using the configured IANA timezone (default `"UTC"`).
