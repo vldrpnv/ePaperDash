@@ -136,9 +136,11 @@ def test_weather_block_is_not_blank() -> None:
     renderer = WeatherBlockRenderer(icon_provider=NullWeatherIconProvider())
     result = renderer.render(_make_forecast(), _make_weather_panel())
     img = result[0].image
+    # A threshold of 200 is well below pure white (255); any rendered text or
+    # separator line produces pixels in the 0–180 range on a white background.
+    _NOT_WHITE_THRESHOLD = 200
     pixels = list(img.getdata())
-    # At least some pixels should be darker than white (255) — text or separators.
-    assert any(p < 200 for p in pixels), "Weather block rendered as blank white image"
+    assert any(p < _NOT_WHITE_THRESHOLD for p in pixels), "Weather block rendered as blank white image"
 
 
 def test_weather_block_zero_precipitation_renders_without_error() -> None:
