@@ -28,6 +28,8 @@ class TrainDepartureTextRenderer(RendererPlugin):
     - When realtime information is available and differs from the scheduled
       time, the actual time is shown in **bold** after the (struck) scheduled
       time.
+    - The first (next) departure is rendered at ``first-departure-font-size``
+      when configured, giving it visual emphasis over the following rows.
     """
 
     name = "train_departures_text"
@@ -36,6 +38,7 @@ class TrainDepartureTextRenderer(RendererPlugin):
     def render(self, data: TrainDepartures, panel: PanelDefinition) -> tuple[DashboardTextBlock, ...]:
         station_line: RichLine = (TextSpan(text=data.station_name, bold=True),)
         departure_font_size = _departure_font_size(panel)
+        first_departure_font_size = _first_departure_font_size(panel)
         station_break_dy: str = str(panel.renderer_config.get("station-break-dy", "1.6em"))
         departure_break_dy: str = str(panel.renderer_config.get("departure-break-dy", "1.8em"))
         lines: list[str | RichLine | StyledLine] = [station_line]
@@ -45,7 +48,8 @@ class TrainDepartureTextRenderer(RendererPlugin):
             prev_line_label = dep.line
             main_spans = _format_departure_timetable(dep, show_label)
             main_dy = station_break_dy if i == 0 else departure_break_dy
-            lines.append(StyledLine(spans=main_spans, font_size=departure_font_size, dy=main_dy))
+            font_size = first_departure_font_size if i == 0 else departure_font_size
+            lines.append(StyledLine(spans=main_spans, font_size=font_size, dy=main_dy))
 
         return (
             DashboardTextBlock(
@@ -107,6 +111,22 @@ def _departure_font_size(panel: PanelDefinition) -> int | None:
         return int(value)
     except (ValueError, TypeError):
         return None
+
+
+def _first_departure_font_size(panel: PanelDefinition) -> int | None:
+    """Return the font size for the first (next) departure, falling back to departure-font-size.
+
+    When ``first-departure-font-size`` is set in renderer_config it is used for
+    the first departure row only, giving it visual emphasis over subsequent rows.
+    Falls back to ``departure-font-size`` when not set.
+    """
+    value = panel.renderer_config.get("first-departure-font-size")
+    if value is None:
+        return _departure_font_size(panel)
+    try:
+        return int(value)
+    except (ValueError, TypeError):
+        return _departure_font_size(panel)
 
 
 def _text_attributes(panel: PanelDefinition) -> dict[str, str]:

@@ -41,7 +41,7 @@ _DASHBOARD_HEIGHT = 480
 _WEATHER_BLOCK_X = 188
 _WEATHER_BLOCK_Y = 6
 _WEATHER_BLOCK_W = 606
-_WEATHER_BLOCK_H = 285
+_WEATHER_BLOCK_H = 200
 
 
 def _local(date_str: str, hour: int) -> datetime:
@@ -193,18 +193,19 @@ def test_weather_block_smaller_slot_renders_correctly() -> None:
 def _layout_svg_with_slots(tmp_path: Path) -> Path:
     """Write a minimal 800×480 layout SVG with non-overlapping slot bounding boxes.
 
-    Uses the two-zone grid layout: left context rail (x 0–182) for the calendar, and
+    Uses the two-zone layout: left context rail (x 0–182) for the calendar, and
     main content area (x 188–800) for the weather block and transport timetable.
+    The calendar baseline y=32 keeps the ascenders on-screen for a ~28 px font.
     """
     template = tmp_path / "layout.svg"
     template.write_text(
         """<svg xmlns="http://www.w3.org/2000/svg" width="800" height="480">
           <rect width="800" height="480" fill="white" />
-          <text id="calendar" x="8" y="12" font-size="28"
-                data-bbox-width="166" data-bbox-height="78" />
-          <text id="trains" x="232" y="308" font-size="18"
-                data-bbox-width="556" data-bbox-height="166" />
-          <image id="weather_block" x="188" y="6" width="606" height="285" />
+          <text id="calendar" x="8" y="32" font-size="28"
+                data-bbox-width="168" data-bbox-height="60" />
+          <text id="trains" x="232" y="228" font-size="18"
+                data-bbox-width="556" data-bbox-height="242" />
+          <image id="weather_block" x="188" y="6" width="606" height="200" />
         </svg>""",
         encoding="utf-8",
     )

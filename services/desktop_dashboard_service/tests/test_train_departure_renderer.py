@@ -538,3 +538,58 @@ def test_renderer_on_time_actual_time_not_bold() -> None:
     assert isinstance(timetable_row, StyledLine)
     time_spans = [s for s in timetable_row.spans if "10:00" in s.text]
     assert all(not s.bold for s in time_spans)
+
+
+# ---------------------------------------------------------------------------
+# first-departure-font-size: next departure emphasis
+# ---------------------------------------------------------------------------
+
+def test_first_departure_font_size_applied_to_first_row_only() -> None:
+    """first-departure-font-size must be used for the first departure row only."""
+    renderer = TrainDepartureTextRenderer()
+    deps = (
+        TrainDeparture(line="S4", destination="Buchenau", scheduled_time=_dt(10, 0),
+                       actual_time=None, cancelled=False),
+        TrainDeparture(line="S4", destination="Trudering", scheduled_time=_dt(10, 8),
+                       actual_time=None, cancelled=False),
+        TrainDeparture(line="S4", destination="Geltendorf", scheduled_time=_dt(10, 25),
+                       actual_time=None, cancelled=False),
+    )
+    data = TrainDepartures(station_name="Eichenau", entries=deps)
+    blocks = renderer.render(
+        data,
+        _make_panel(**{"departure-font-size": "18", "first-departure-font-size": "22"}),
+    )
+    lines = blocks[0].lines
+    # First departure uses first-departure-font-size
+    assert isinstance(lines[1], StyledLine)
+    assert lines[1].font_size == 22
+    # Subsequent departures use departure-font-size
+    assert isinstance(lines[2], StyledLine)
+    assert lines[2].font_size == 18
+    assert isinstance(lines[3], StyledLine)
+    assert lines[3].font_size == 18
+
+
+def test_first_departure_font_size_falls_back_to_departure_font_size() -> None:
+    """When first-departure-font-size is absent, all rows use departure-font-size."""
+    renderer = TrainDepartureTextRenderer()
+    dep = TrainDeparture(line="S4", destination="Buchenau", scheduled_time=_dt(10, 0),
+                         actual_time=None, cancelled=False)
+    data = TrainDepartures(station_name="Eichenau", entries=(dep, dep))
+    blocks = renderer.render(data, _make_panel(**{"departure-font-size": "18"}))
+    for row in blocks[0].lines[1:]:
+        assert isinstance(row, StyledLine)
+        assert row.font_size == 18
+
+
+def test_first_departure_font_size_is_none_when_neither_configured() -> None:
+    """When neither first-departure-font-size nor departure-font-size is set, font_size is None."""
+    renderer = TrainDepartureTextRenderer()
+    dep = TrainDeparture(line="S4", destination="Buchenau", scheduled_time=_dt(10, 0),
+                         actual_time=None, cancelled=False)
+    data = TrainDepartures(station_name="Eichenau", entries=(dep,))
+    blocks = renderer.render(data, _make_panel())
+    row = blocks[0].lines[1]
+    assert isinstance(row, StyledLine)
+    assert row.font_size is None

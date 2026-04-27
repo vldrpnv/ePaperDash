@@ -149,7 +149,7 @@ Window start modes:
 - `analog_clock` (self-contained PIL image: outer circle, tick marks, hour hand, outer-arc validity sector, optional range/approx label)
 - `weather_text` (icon-based weather timeline, SVG text output)
 - `weather_block` (self-contained PIL image: today overview + 4-h blocks + tomorrow row)
-- `train_departures_text` — the station name header is a **bold** `RichLine`; each departure is rendered as a single timetable row (one `StyledLine`) containing the line label, departure time(s), and destination on the same line.  The line label is shown in **bold** for the first occurrence; subsequent departures sharing the same line label use space padding to keep the time column aligned.  Delayed departures show the scheduled time as strikethrough followed by the actual time in **bold**.  Cancelled departures show the scheduled time as strikethrough followed by "Cancelled" and the destination.
+- `train_departures_text` — the station name header is a **bold** `RichLine`; each departure is rendered as a single timetable row (one `StyledLine`) containing the line label, departure time(s), and destination on the same line.  The line label is shown in **bold** for the first occurrence; subsequent departures sharing the same line label use space padding to keep the time column aligned.  Delayed departures show the scheduled time as strikethrough followed by the actual time in **bold**.  Cancelled departures show the scheduled time as strikethrough followed by "Cancelled" and the destination.  When `first-departure-font-size` is set in `renderer_config`, the first (next) departure row is rendered at that font size to give it visual emphasis over subsequent rows; if not set, `departure-font-size` applies to all rows.
 
 ## Output contract
 
@@ -181,7 +181,8 @@ Window start modes:
 - If the layout does not contain `last_update`, dashboard generation continues without errors and without injecting an extra slot.
 - `train_departures_text` renders each departure as a single timetable row: line label (bold on first occurrence of each line, space-padded on subsequent same-line rows), scheduled time, destination — all on one line.
 - Delayed departure actual times are shown in **bold**; cancelled departure scheduled times are shown as strikethrough.
-- The layout slot bounding boxes in `layout.svg` must not overlap; the two-zone grid separates the left context rail (x 0–182) from the main content area (x 188–800), with the weather block in the main area top section and the transport timetable in the main area bottom section.
+- When `first-departure-font-size` is set, the first departure row is rendered at that font size for visual emphasis; subsequent rows use `departure-font-size`.
+- The layout slot bounding boxes in `layout.svg` must not overlap; the two-zone layout separates the left context rail (x 0–182) from the main content area (x 188–800), with the weather block in the main area top section (height 200 px) and the transport timetable in the lower portion (y ≥ 212).
 - `analog_clock` renders an outer circle, optional tick marks, and an optional hour hand, with no minute hand and no second hand.
 - `analog_clock` `sector_style = "outer_arc"` (default) renders a highlighted thick arc along the clock rim spanning the validity window.
 - `analog_clock` `sector_style = "end_hand"` renders a single long hand pointing to the end of the validity window instead of an arc.
