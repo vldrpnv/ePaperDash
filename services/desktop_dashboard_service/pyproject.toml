@@ -9,7 +9,6 @@ description = "Desktop dashboard image generator and MQTT publisher for ePaperDa
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-  "CairoSVG==2.9.0",
   "Pillow==12.2.0",
   "paho-mqtt==2.1.0",
 ]
