@@ -68,11 +68,16 @@ The remaining 612 px-wide area contains the functional information:
 - The full-height vertical divider and all horizontal rail dividers are removed.
   Zones are defined by spacing and alignment, not by visible walls.
 
-### Transport departure emphasis
+### Transport departure emphasis and delay display
 
 The `first-departure-font-size` renderer_config key renders the next (first) departure at a
 larger size than subsequent departures, giving it visual emphasis without requiring a
 separate heading row.
+
+Delayed departures display as `~~HH:MM~~ +Xm  Destination` — the scheduled time is struck
+through and a compact `+Xm` indicator in **bold** shows the delay in minutes.  The actual
+clock time is not repeated verbatim, preventing two full HH:MM values from appearing
+side-by-side and colliding visually.
 
 ## Consequences
 

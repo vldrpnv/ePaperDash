@@ -26,8 +26,9 @@ class TrainDepartureTextRenderer(RendererPlugin):
     - When the departure is cancelled the scheduled time is struck through and
       ``Cancelled`` is appended before the destination.
     - When realtime information is available and differs from the scheduled
-      time, the actual time is shown in **bold** after the (struck) scheduled
-      time.
+      time, the scheduled time is struck through and a compact ``+Xm`` delay
+      indicator is shown in **bold** — the actual arrival time is not repeated
+      verbatim so that two full clock times cannot appear side-by-side.
     - The first (next) departure is rendered at ``first-departure-font-size``
       when configured, giving it visual emphasis over the following rows.
     """
@@ -67,8 +68,9 @@ def _format_departure_timetable(dep: TrainDeparture, show_line_label: bool) -> R
     rendered in **bold**.  When ``False`` (repeated label) it is replaced by
     an equal-width run of spaces so the time column stays visually aligned.
 
-    Delayed departures show the scheduled time struck through followed by the
-    actual time in **bold**.  Cancelled departures show the scheduled time
+    Delayed departures show the scheduled time struck through followed by a
+    compact ``+Xm`` delay indicator in **bold** — preventing two full times from
+    appearing side-by-side.  Cancelled departures show the scheduled time
     struck through followed by ``Cancelled``.  The destination always appears
     last on the same row.
     """
@@ -93,9 +95,13 @@ def _format_departure_timetable(dep: TrainDeparture, show_line_label: bool) -> R
     if dep.actual_time is not None:
         actual_str = dep.actual_time.strftime("%H:%M")
         is_delayed = actual_str != scheduled_str
-        time_spans.append(TextSpan(text=scheduled_str, strikethrough=is_delayed))
         if is_delayed:
-            time_spans.append(TextSpan(text=f"  {actual_str}", bold=True))
+            delay_min = int((dep.actual_time - dep.scheduled_time).total_seconds() / 60)
+            delay_str = f"+{delay_min}m" if delay_min >= 0 else f"{delay_min}m"
+            time_spans.append(TextSpan(text=scheduled_str, strikethrough=True))
+            time_spans.append(TextSpan(text=f"  {delay_str}", bold=True))
+        else:
+            time_spans.append(TextSpan(text=scheduled_str))
     else:
         time_spans.append(TextSpan(text=scheduled_str))
 
