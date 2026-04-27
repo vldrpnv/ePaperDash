@@ -13,18 +13,21 @@ from epaper_dashboard_service.domain.ports import RendererPlugin
 
 
 class TrainDepartureTextRenderer(RendererPlugin):
-    """Render MVG departure entries as rich-text lines.
+    """Render MVG departure entries as rich-text timetable lines.
 
-    Each departure is formatted as one ``RichLine`` (or ``StyledLine`` when
-    ``departure-font-size`` is configured):
+    Each departure is formatted as a single ``StyledLine`` (timetable row):
 
     - The station name header is shown in **bold**.
-    - The line label (e.g. ``S4``) is shown in **bold**.
+    - The line label (e.g. ``S4``) is shown in **bold** for the first
+      occurrence; subsequent departures of the same line use space padding
+      so the time column stays aligned.
     - The scheduled time follows.
+    - The destination appears on the same row after the time.
     - When the departure is cancelled the scheduled time is struck through and
-      ``Cancelled`` is appended.
+      ``Cancelled`` is appended before the destination.
     - When realtime information is available and differs from the scheduled
-      time, the actual time is appended after the scheduled time.
+      time, the actual time is shown in **bold** after the (struck) scheduled
+      time.
     """
 
     name = "train_departures_text"
@@ -36,15 +39,13 @@ class TrainDepartureTextRenderer(RendererPlugin):
         station_break_dy: str = str(panel.renderer_config.get("station-break-dy", "1.6em"))
         departure_break_dy: str = str(panel.renderer_config.get("departure-break-dy", "1.8em"))
         lines: list[str | RichLine | StyledLine] = [station_line]
+        prev_line_label: str | None = None
         for i, dep in enumerate(data.entries):
-            main_spans, dest_text = _format_departure(dep)
+            show_label = dep.line != prev_line_label
+            prev_line_label = dep.line
+            main_spans = _format_departure_timetable(dep, show_label)
             main_dy = station_break_dy if i == 0 else departure_break_dy
             lines.append(StyledLine(spans=main_spans, font_size=departure_font_size, dy=main_dy))
-            lines.append(StyledLine(
-                spans=(TextSpan(text=dest_text),),
-                font_size=departure_font_size,
-                dy="1.1em",
-            ))
 
         return (
             DashboardTextBlock(
@@ -55,37 +56,46 @@ class TrainDepartureTextRenderer(RendererPlugin):
         )
 
 
-def _format_departure(dep: TrainDeparture) -> tuple[RichLine, str]:
-    """Return (main RichLine with line+times, destination text)."""
+def _format_departure_timetable(dep: TrainDeparture, show_line_label: bool) -> RichLine:
+    """Return a single ``RichLine`` containing label, times, and destination.
+
+    When *show_line_label* is ``True`` the line label (e.g. ``S4``) is
+    rendered in **bold**.  When ``False`` (repeated label) it is replaced by
+    an equal-width run of spaces so the time column stays visually aligned.
+
+    Delayed departures show the scheduled time struck through followed by the
+    actual time in **bold**.  Cancelled departures show the scheduled time
+    struck through followed by ``Cancelled``.  The destination always appears
+    last on the same row.
+    """
     scheduled_str = dep.scheduled_time.strftime("%H:%M")
-    dest_line = f"   {dep.destination}"
+
+    if show_line_label:
+        prefix: tuple[TextSpan, ...] = (
+            TextSpan(text=dep.line, bold=True),
+            TextSpan(text="  "),
+        )
+    else:
+        prefix = (TextSpan(text=" " * (len(dep.line) + 2)),)
 
     if dep.cancelled:
-        return (
-            (
-                TextSpan(text=dep.line, bold=True),
-                TextSpan(text="  "),
-                TextSpan(text=scheduled_str, strikethrough=True),
-                TextSpan(text="  Cancelled"),
-            ),
-            dest_line,
+        return prefix + (
+            TextSpan(text=scheduled_str, strikethrough=True),
+            TextSpan(text="  Cancelled"),
+            TextSpan(text=f"  {dep.destination}"),
         )
 
-    spans: list[TextSpan] = [
-        TextSpan(text=dep.line, bold=True),
-        TextSpan(text="  "),
-    ]
-
+    time_spans: list[TextSpan] = []
     if dep.actual_time is not None:
         actual_str = dep.actual_time.strftime("%H:%M")
         is_delayed = actual_str != scheduled_str
-        spans.append(TextSpan(text=scheduled_str, strikethrough=is_delayed))
+        time_spans.append(TextSpan(text=scheduled_str, strikethrough=is_delayed))
         if is_delayed:
-            spans.append(TextSpan(text=f"  {actual_str}"))
+            time_spans.append(TextSpan(text=f"  {actual_str}", bold=True))
     else:
-        spans.append(TextSpan(text=scheduled_str))
+        time_spans.append(TextSpan(text=scheduled_str))
 
-    return tuple(spans), dest_line
+    return prefix + tuple(time_spans) + (TextSpan(text=f"  {dep.destination}"),)
 
 
 def _departure_font_size(panel: PanelDefinition) -> int | None:

@@ -126,7 +126,7 @@ Font rendering in `weather_block` uses bundled DejaVu Sans TTF files in `adapter
 - `calendar_text`
 - `weather_text` (icon-based weather timeline, SVG text output)
 - `weather_block` (self-contained PIL image: today overview + 4-h blocks + tomorrow row)
-- `train_departures_text` — the station name header is a **bold** `RichLine`; each departure row is also a `RichLine` with: bold line label, destination (direction), scheduled time; delayed departures show the scheduled time as strikethrough followed by the actual time; cancelled departures show the scheduled time as strikethrough and append "Cancelled"
+- `train_departures_text` — the station name header is a **bold** `RichLine`; each departure is rendered as a single timetable row (one `StyledLine`) containing the line label, departure time(s), and destination on the same line.  The line label is shown in **bold** for the first occurrence; subsequent departures sharing the same line label use space padding to keep the time column aligned.  Delayed departures show the scheduled time as strikethrough followed by the actual time in **bold**.  Cancelled departures show the scheduled time as strikethrough followed by "Cancelled" and the destination.
 
 ## Output contract
 
@@ -156,3 +156,6 @@ Font rendering in `weather_block` uses bundled DejaVu Sans TTF files in `adapter
 - `weather_text` renders icon-led forecast lines (without condition words such as "Cloudy") and supports display precision coarsening through `renderer_config.precision_hours`.
 - If the layout contains a `<text id="last_update">` element, each generated dashboard includes a `Last update: YYYY-MM-DD HH:MM:SS ±HHMM` line using the host local timezone offset.
 - If the layout does not contain `last_update`, dashboard generation continues without errors and without injecting an extra slot.
+- `train_departures_text` renders each departure as a single timetable row: line label (bold on first occurrence of each line, space-padded on subsequent same-line rows), scheduled time, destination — all on one line.
+- Delayed departure actual times are shown in **bold**; cancelled departure scheduled times are shown as strikethrough.
+- The layout slot bounding boxes in `layout.svg` must not overlap; the left-column trains slot ends at x≤300 and the right-column weather block starts at x≥310.
