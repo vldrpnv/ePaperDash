@@ -35,8 +35,9 @@ Zones are separated by whitespace, not by visible divider lines.
 2. **Analog validity-window clock** (`analog_clock` image slot, x=51, y=100, 76×96) —
    `size_px=60`, `show_tick_marks=false` keeps the face small and quiet; the `approx`
    label (`ca. HH:MM`) communicates freshness without implying precision.
-3. **Mascot / decorative image** (`image_pool` image slot, x=22, y=212, 130×130) —
-   reduced from the original 200×148 placement; secondary and contained within the rail.
+3. **Mascot / decorative image** (`image_pool` image slot, x=10, y=350, 130×130) —
+   reduced from the original 200×148 placement; secondary and anchored near the bottom
+   of the rail.
 
 ### Main content area (x 188–800)
 
@@ -46,7 +47,7 @@ The remaining 612 px-wide area contains the functional information:
    renderer (today headline + forecast blocks + tomorrow row) anchors the top of the
    main area.  Its 200 px height leaves the lower half of the screen for transport.
 2. **Transport timetable** (`trains` text slot, x=232, y=228, bbox 556×242) — below a
-   single light gray separator at y=212.  A small train icon path is positioned at
+   darker, thicker horizontal separator at y=212.  A small train icon path is positioned at
    x≈192, y≈214, and the timetable text begins at x=232 to the right of the icon.
 
 ### Grid constants
@@ -74,10 +75,10 @@ The `first-departure-font-size` renderer_config key renders the next (first) dep
 larger size than subsequent departures, giving it visual emphasis without requiring a
 separate heading row.
 
-Delayed departures display as `~~HH:MM~~ +Xm  Destination` — the scheduled time is struck
-through and a compact `+Xm` indicator in **bold** shows the delay in minutes.  The actual
-clock time is not repeated verbatim, preventing two full HH:MM values from appearing
-side-by-side and colliding visually.
+Delayed departures display only the actual (realtime) departure time in **bold** —
+`**HH:MM**  Destination` — hiding the scheduled time entirely so that a single, clear time
+is shown.  On-time departures show the scheduled time without emphasis.  Cancelled
+departures show the scheduled time as strikethrough followed by "Cancelled".
 
 ## Consequences
 

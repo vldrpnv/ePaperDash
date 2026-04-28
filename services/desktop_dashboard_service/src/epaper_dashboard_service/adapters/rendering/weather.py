@@ -460,10 +460,17 @@ def _select_weather_blocks(
         S2 = tomorrow 06
         S3 = tomorrow 10
 
-    **H >= 21 or H < 6** (all tomorrow):
+    **H >= 21** (all tomorrow):
         (tomorrow 06), (tomorrow 10), (tomorrow 14)
 
+    **H < 6** (today's coming daytime):
+        (today 06), (today 10), (today 14)
+        Early-morning hours (00–05) have not yet reached today's core hours;
+        showing today's upcoming slots is more useful than jumping to tomorrow.
+
     Examples from spec:
+      00:00  → today 06-10, today 10-14, today 14-18
+      05:00  → today 06-10, today 10-14, today 14-18
       09:00  → 09-13, 14-18, 18-22
       10:00  → 10-14, 14-18, 18-22
       11:00  → 11-15, 15-19, 19-23
