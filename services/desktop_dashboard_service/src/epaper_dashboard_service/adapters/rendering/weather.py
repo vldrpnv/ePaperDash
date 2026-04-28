@@ -469,19 +469,19 @@ def _select_weather_blocks(
         showing today's upcoming slots is more useful than jumping to tomorrow.
 
     Examples from spec:
-      00:00  → today 06-10, today 10-14, today 14-18
-      05:00  → today 06-10, today 10-14, today 14-18
+      00:00  → 06-10, 10-14, 14-18
+      05:00  → 06-10, 10-14, 14-18
       09:00  → 09-13, 14-18, 18-22
       10:00  → 10-14, 14-18, 18-22
       11:00  → 11-15, 15-19, 19-23
       12:00  → 12-16, 16-20, 20-00
-      13:00  → 13-17, 18-22, tmrw 06-10
-      14:00  → 14-18, 18-22, tmrw 06-10
-      15:00  → 15-19, 19-23, tmrw 06-10
-      16:00  → 16-20, 20-00, tmrw 06-10
-      17:00  → 17-21, tmrw 06-10, tmrw 10-14
-      20:00  → 20-00, tmrw 06-10, tmrw 10-14
-      21:00  → tmrw 06-10, tmrw 10-14, tmrw 14-18
+      13:00  → 13-17, 18-22, 06-10
+      14:00  → 14-18, 18-22, 06-10
+      15:00  → 15-19, 19-23, 06-10
+      16:00  → 16-20, 20-00, 06-10
+      17:00  → 17-21, 06-10, 10-14
+      20:00  → 20-00, 06-10, 10-14
+      21:00  → 06-10, 10-14, 14-18
     """
     local_now = now  # use now's own timezone, not the system TZ, so that the
     # hour is interpreted in the same zone as the periods (which are converted
@@ -563,8 +563,6 @@ def _select_weather_blocks(
         # Use modulo so 24 displays as 00 (e.g. 20–00, not 20–24).
         end_label = (block_hour + 4) % 24
         label = f"{block_hour:02d}\u2013{end_label:02d}"
-        if block_date != today:
-            label = "tmrw " + label
 
         if not block_periods:
             blocks.append(
