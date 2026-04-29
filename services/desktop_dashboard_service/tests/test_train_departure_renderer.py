@@ -630,3 +630,90 @@ def test_first_departure_font_size_is_none_when_neither_configured() -> None:
     row = blocks[0].lines[1]
     assert isinstance(row, StyledLine)
     assert row.font_size is None
+
+
+# ---------------------------------------------------------------------------
+# show-line config flag
+# ---------------------------------------------------------------------------
+
+def test_show_line_false_omits_line_label_from_spans() -> None:
+    """When show-line=false, the line designation must not appear in any span."""
+    renderer = TrainDepartureTextRenderer()
+    dep = TrainDeparture(
+        line="S4", destination="München Hbf",
+        scheduled_time=_dt(10, 0), actual_time=None, cancelled=False,
+    )
+    data = TrainDepartures(station_name="Eichenau", entries=(dep,))
+    blocks = renderer.render(data, _make_panel(**{"show-line": "false"}))
+    row = blocks[0].lines[1]
+    assert isinstance(row, StyledLine)
+    all_text = "".join(s.text for s in row.spans)
+    assert "S4" not in all_text
+
+
+def test_show_line_false_omits_space_padding_for_repeated_line() -> None:
+    """When show-line=false, repeated-line space padding must also be absent."""
+    renderer = TrainDepartureTextRenderer()
+    dep1 = TrainDeparture(
+        line="S4", destination="München Hbf",
+        scheduled_time=_dt(10, 0), actual_time=None, cancelled=False,
+    )
+    dep2 = TrainDeparture(
+        line="S4", destination="Grafrath",
+        scheduled_time=_dt(10, 5), actual_time=None, cancelled=False,
+    )
+    data = TrainDepartures(station_name="Eichenau", entries=(dep1, dep2))
+    blocks = renderer.render(data, _make_panel(**{"show-line": "false"}))
+    row2 = blocks[0].lines[2]
+    assert isinstance(row2, StyledLine)
+    # First span must be non-whitespace content (time or destination), not space padding.
+    assert row2.spans[0].text.strip() != ""
+
+
+def test_show_line_true_is_default() -> None:
+    """Omitting show-line must default to showing the line label."""
+    renderer = TrainDepartureTextRenderer()
+    dep = TrainDeparture(
+        line="S4", destination="München Hbf",
+        scheduled_time=_dt(10, 0), actual_time=None, cancelled=False,
+    )
+    data = TrainDepartures(station_name="Eichenau", entries=(dep,))
+    blocks = renderer.render(data, _make_panel())
+    row = blocks[0].lines[1]
+    assert isinstance(row, StyledLine)
+    all_text = "".join(s.text for s in row.spans)
+    assert "S4" in all_text
+
+
+# ---------------------------------------------------------------------------
+# station-name-font-size config key
+# ---------------------------------------------------------------------------
+
+def test_station_name_font_size_wraps_header_in_styled_line() -> None:
+    """station-name-font-size must wrap the station header in a StyledLine."""
+    renderer = TrainDepartureTextRenderer()
+    data = TrainDepartures(station_name="Eichenau", entries=())
+    blocks = renderer.render(data, _make_panel(**{"station-name-font-size": "26"}))
+    header = blocks[0].lines[0]
+    assert isinstance(header, StyledLine)
+    assert header.font_size == 26
+
+
+def test_station_name_font_size_header_content_preserved() -> None:
+    """Station name text must be preserved when wrapped in a StyledLine."""
+    renderer = TrainDepartureTextRenderer()
+    data = TrainDepartures(station_name="Eichenau", entries=())
+    blocks = renderer.render(data, _make_panel(**{"station-name-font-size": "26"}))
+    header = blocks[0].lines[0]
+    assert isinstance(header, StyledLine)
+    assert any(s.text == "Eichenau" for s in header.spans)
+
+
+def test_station_name_font_size_absent_keeps_header_as_rich_line() -> None:
+    """Without station-name-font-size the station header stays a plain RichLine tuple."""
+    renderer = TrainDepartureTextRenderer()
+    data = TrainDepartures(station_name="Eichenau", entries=())
+    blocks = renderer.render(data, _make_panel())
+    header = blocks[0].lines[0]
+    assert isinstance(header, tuple)
+    assert not isinstance(header, StyledLine)

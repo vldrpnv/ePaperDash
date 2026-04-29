@@ -19,3 +19,7 @@ This directory captures the current specification and the design decisions for `
 - `adr-0004-source-failure-isolation-and-slot-clearing.md` — isolate transient source failures to the affected panel and clear unavailable slots
 - `adr-0005-bounded-mqtt-publish-retries-and-loop-recovery.md` — retry transient MQTT publish failures and keep the periodic loop running
 - `adr-0006-multi-provider-weather-and-precision-rendering.md` — unify weather providers behind one timeline contract and precision-aware icon rendering
+- `dd-0007-rich-text-spans-and-auto-font-size.md` — TextSpan / RichLine / StyledLine model and bbox auto-sizing heuristic
+- `dd-0008-mvg-fib-v2-departure-source.md` — MVG FIB v2 API as the departure source
+- `dd-0009-two-zone-grid-layout.md` — two-zone layout rationale (left rail + main content area)
+- `dd-0010-dashboard-layout-specification.md` — complete region map, typography scale, icon sizes, and train-row state grammar

@@ -8,11 +8,12 @@
        (top of text ≈ y − 0.75 × font-size ≈ 32 − 21 = 11 px).
        Explicit font-size in renderer_config takes precedence over auto-fit. -->
   <text id="calendar" x="8" y="32" font-family="Arial, sans-serif" fill="black"
-        data-bbox-width="168" data-bbox-height="60" />
+        data-bbox-width="168" data-bbox-height="68" />
 
   <!-- Analog validity-window clock: secondary, quiet — communicates freshness only.
-       size_px=60 in renderer_config keeps the face small and unobtrusive. -->
-  <image id="analog_clock" x="51" y="100" width="76" height="96" />
+       size_px=154 in renderer_config = 85 % of the 182 px rail width.
+       x=7 centers the wider label canvas (≈168 px) within the rail. -->
+  <image id="analog_clock" x="7" y="110" width="168" height="190" />
 
   <!-- Mascot / decorative image: anchored at the bottom-left corner of the rail. -->
   <image id="image_pool" x="10" y="350" width="130" height="130" />
@@ -31,14 +32,15 @@
   <!-- Train icon: Phosphor Icons "train" (MIT), viewBox 0 0 256 256.
        Transform: translate(184,212) scale(0.2) places the icon top-left at ≈(192,214),
        giving an ~35×46 px icon that aligns with the timetable text to its right. -->
-  <path transform="translate(184,212) scale(0.2)"
+  <path transform="translate(184,232) scale(0.2)"
         fill="black"
         d="M184 24H72a32 32 0 0 0-32 32v128a32 32 0 0 0 72 32h8l-14.4 19.2a8 8 0 1 0 12.8 9.6L100 216h56l21.6 28.8a8 8 0 1 0 12.8-9.6L176 216h8a32 32 0 0 0 32-32V56a32 32 0 0 0-32-32M56 120V80h64v40Zm80-40h64v40h-64ZM72 40h112a16 16 0 0 1 16 16v8H56v-8a16 16 0 0 1 16-16m112 160H72a16 16 0 0 1-16-16v-48h144v48a16 16 0 0 1-16 16m-88-28a12 12 0 1 1-12-12a12 12 0 0 1 12 12m88 0a12 12 0 1 1-12-12a12 12 0 0 1 12 12"/>
 
-  <!-- Trains: timetable-style, aligned columns (line · time · destination).
-       x=232 leaves room for the train icon; auto-sized to bbox.
-       Tall bbox (252 px) gives all departure rows comfortable vertical space. -->
-  <text id="trains" x="232" y="228" font-family="Arial, sans-serif" fill="black"
-        data-bbox-width="556" data-bbox-height="242" />
+  <!-- Trains: timetable-style, time · destination columns.
+       x=248 leaves clear room for the train icon (right edge ≈235 px).
+       y=248 gives a 36 px gap below the separator at y=212.
+       Tall bbox (222 px) comfortably holds all departure rows. -->
+  <text id="trains" x="248" y="248" font-family="Arial, sans-serif" fill="black"
+        data-bbox-width="540" data-bbox-height="222" />
 
 </svg>

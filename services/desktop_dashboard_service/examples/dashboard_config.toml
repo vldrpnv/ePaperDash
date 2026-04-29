@@ -26,7 +26,7 @@ timezone = "Europe/Berlin"
 day_of_week_format = "%A"
 month_format = "%B"
 [panels.renderer_config]
-font-size = "28"
+font-size = "26"
 font-weight = "700"
 
 [[panels]]
@@ -60,7 +60,8 @@ label_mode = "approx"
 sector_style = "end_hand"
 show_hour_hand = "true"
 show_tick_marks = "false"
-size_px = "60"
+show_face = "true"
+size_px = "154"
 
 [[panels]]
 source = "mvg_departures"
@@ -74,8 +75,10 @@ timezone = "Europe/Berlin"
 font-family = "Arial, sans-serif"
 font-size = "20"
 fill = "black"
-departure-font-size = "18"
-first-departure-font-size = "22"
+show-line = "false"
+station-name-font-size = "26"
+departure-font-size = "20"
+departure-break-dy = "1.4em"
 
 [[panels]]
 source = "random_image"
