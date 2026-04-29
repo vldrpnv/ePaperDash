@@ -97,6 +97,23 @@ class ClockData:
 
 
 @dataclass(frozen=True)
+class GoogleCalendarEvent:
+    """A single event fetched from a Google Calendar iCal feed."""
+
+    title: str
+    start_time: datetime | None  # None when the event is all-day
+    end_time: datetime | None    # None when the event is all-day
+    all_day: bool
+
+
+@dataclass(frozen=True)
+class GoogleCalendarEvents:
+    """Today's events from a Google Calendar iCal feed (up to max_events)."""
+
+    events: tuple[GoogleCalendarEvent, ...]
+
+
+@dataclass(frozen=True)
 class TrainDeparture:
     line: str
     destination: str
