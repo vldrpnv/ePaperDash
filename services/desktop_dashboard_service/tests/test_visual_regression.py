@@ -38,10 +38,10 @@ _TZ_BERLIN = timezone(timedelta(hours=2))  # CEST for stable test data
 
 _DASHBOARD_WIDTH = 800
 _DASHBOARD_HEIGHT = 480
-_WEATHER_BLOCK_X = 305
-_WEATHER_BLOCK_Y = 163
-_WEATHER_BLOCK_W = 490
-_WEATHER_BLOCK_H = 312
+_WEATHER_BLOCK_X = 188
+_WEATHER_BLOCK_Y = 6
+_WEATHER_BLOCK_W = 606
+_WEATHER_BLOCK_H = 200
 
 
 def _local(date_str: str, hour: int) -> datetime:
@@ -191,17 +191,21 @@ def test_weather_block_smaller_slot_renders_correctly() -> None:
 # ---------------------------------------------------------------------------
 
 def _layout_svg_with_slots(tmp_path: Path) -> Path:
-    """Write a minimal 800×480 layout SVG with non-overlapping slot bounding boxes."""
+    """Write a minimal 800×480 layout SVG with non-overlapping slot bounding boxes.
+
+    Uses the two-zone layout: left context rail (x 0–182) for the calendar, and
+    main content area (x 188–800) for the weather block and transport timetable.
+    The calendar baseline y=32 keeps the ascenders on-screen for a ~28 px font.
+    """
     template = tmp_path / "layout.svg"
     template.write_text(
         """<svg xmlns="http://www.w3.org/2000/svg" width="800" height="480">
           <rect width="800" height="480" fill="white" />
-          <text id="calendar" x="8" y="42" font-size="22"
-                data-bbox-width="274" data-bbox-height="110" />
-          <text id="trains" x="64" y="192" font-size="18"
-                data-bbox-width="236" data-bbox-height="280" />
-          <image id="weather_block" x="310" y="163" width="482" height="312" />
-          <text id="last_update" x="8" y="476" font-size="10" />
+          <text id="calendar" x="8" y="32" font-size="28"
+                data-bbox-width="168" data-bbox-height="60" />
+          <text id="trains" x="232" y="228" font-size="18"
+                data-bbox-width="556" data-bbox-height="242" />
+          <image id="weather_block" x="188" y="6" width="606" height="200" />
         </svg>""",
         encoding="utf-8",
     )
@@ -222,7 +226,6 @@ def test_svg_layout_full_render_correct_dimensions(tmp_path: Path) -> None:
                 "    19:09  Geltendorf",
             ),
         ),
-        DashboardTextBlock(slot="last_update", lines=("Last update: 2026-04-27 18:44",)),
     )
     img = SvgLayoutRenderer().render(
         template_path=template,
@@ -283,3 +286,28 @@ def test_svg_layout_saves_preview_image(tmp_path: Path) -> None:
     )
     assert svg_out.exists()
     assert svg_out.stat().st_size > 0
+
+
+def test_svg_layout_without_last_update_slot_renders_without_error(tmp_path: Path) -> None:
+    """A layout that does not declare a last_update slot must render without errors.
+
+    This verifies the specification: 'If the layout does not contain last_update,
+    dashboard generation continues without errors and without injecting an extra slot.'
+    The two-zone grid layout intentionally omits last_update to avoid debug timestamps
+    in normal display mode.
+    """
+    template = _layout_svg_with_slots(tmp_path)
+    blocks = (
+        DashboardTextBlock(slot="calendar", lines=("Monday", "27 April")),
+        DashboardTextBlock(
+            slot="trains",
+            lines=("Eichenau", "S4  18:44  Buchenau"),
+        ),
+    )
+    img = SvgLayoutRenderer().render(
+        template_path=template,
+        blocks=blocks,
+        width=_DASHBOARD_WIDTH,
+        height=_DASHBOARD_HEIGHT,
+    )
+    assert img.size == (_DASHBOARD_WIDTH, _DASHBOARD_HEIGHT)

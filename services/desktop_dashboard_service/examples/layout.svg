@@ -1,32 +1,46 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="800" height="480" viewBox="0 0 800 480">
   <rect width="800" height="480" fill="white" />
 
-  <!-- ═══════════════ LEFT COLUMN (x 0–300) ═══════════════ -->
+  <!-- ═══════════════ LEFT CONTEXT RAIL (x 0–182) ═══════════════ -->
 
-  <!-- Calendar: baseline y=42 keeps first line on screen even when auto-font is large -->
-  <text id="calendar" x="8" y="42" font-family="Arial, sans-serif" font-size="22" fill="black"
-        data-bbox-width="284" data-bbox-height="90" />
+  <!-- Calendar: compact two-line date (day-of-week / day month).
+       y=32 places the baseline so the ascenders of the first line stay on-screen
+       (top of text ≈ y − 0.75 × font-size ≈ 32 − 21 = 11 px).
+       Explicit font-size in renderer_config takes precedence over auto-fit. -->
+  <text id="calendar" x="8" y="32" font-family="Arial, sans-serif" fill="black"
+        data-bbox-width="168" data-bbox-height="68" />
 
-  <!-- Train icon: Phosphor Icons "train" (MIT), viewBox 0 0 256 256, scaled to ~40×50 px.
-       Transform: translate(-3,170) scale(0.2) positions left edge at x≈6, top at y≈175. -->
-  <path transform="translate(-3,170) scale(0.2)"
+  <!-- Analog validity-window clock: secondary, quiet — communicates freshness only.
+       size_px=154 in renderer_config = 85 % of the 182 px rail width.
+       x=7 centers the wider label canvas (≈168 px) within the rail. -->
+  <image id="analog_clock" x="7" y="110" width="168" height="190" />
+
+  <!-- Mascot / decorative image: anchored at the bottom-left corner of the rail. -->
+  <image id="image_pool" x="10" y="350" width="130" height="130" />
+
+  <!-- ═══════════════ MAIN CONTENT AREA (x 188–800) ═══════════════ -->
+
+  <!-- Weather block: primary visual anchor at the top of the main area.
+       Height 200 px keeps weather prominent but leaves the lower half for transport.
+       Composited at runtime; x/y/width/height are read by the application service
+       and injected into the weather_block renderer_config. -->
+  <image id="weather_block" x="188" y="6" width="606" height="200" />
+
+  <!-- Bold separator between weather and transport — clearly marks the zone boundary. -->
+  <line x1="192" y1="212" x2="794" y2="212" stroke="#444" stroke-width="2" />
+
+  <!-- Train icon: Phosphor Icons "train" (MIT), viewBox 0 0 256 256.
+       Transform: translate(184,212) scale(0.2) places the icon top-left at ≈(192,214),
+       giving an ~35×46 px icon that aligns with the timetable text to its right. -->
+  <path transform="translate(184,232) scale(0.2)"
         fill="black"
         d="M184 24H72a32 32 0 0 0-32 32v128a32 32 0 0 0 72 32h8l-14.4 19.2a8 8 0 1 0 12.8 9.6L100 216h56l21.6 28.8a8 8 0 1 0 12.8-9.6L176 216h8a32 32 0 0 0 32-32V56a32 32 0 0 0-32-32M56 120V80h64v40Zm80-40h64v40h-64ZM72 40h112a16 16 0 0 1 16 16v8H56v-8a16 16 0 0 1 16-16m112 160H72a16 16 0 0 1-16-16v-48h144v48a16 16 0 0 1-16 16m-88-28a12 12 0 1 1-12-12a12 12 0 0 1 12 12m88 0a12 12 0 1 1-12-12a12 12 0 0 1 12 12"/>
 
-  <!-- Trains: x=52 leaves room for the icon; auto-sized to bbox; station name + timetable rows -->
-  <text id="trains" x="64" y="192" font-family="Arial, sans-serif" fill="black"
-        data-bbox-width="236" data-bbox-height="280" />
-
-  <!-- ═══════════════ RIGHT COLUMN (x 310–800, 490 px wide) ═══════════════ -->
-
-  <!-- Analog validity-window clock: between calendar (right edge ~292) and random image (x=590),
-       centred in the top area.  size_px=140 provides good visibility at dashboard scale. -->
-  <image id="analog_clock" x="315" y="8" width="140" height="155" />
-
-  <!-- Image slot: top-right corner -->
-  <image id="image_pool" x="590" y="10" width="200" height="148" />
-
-  <!-- Weather block: right column, composited at runtime -->
-  <image id="weather_block" x="310" y="163" width="482" height="312" />
+  <!-- Trains: timetable-style, time · destination columns.
+       x=248 leaves clear room for the train icon (right edge ≈235 px).
+       y=248 gives a 36 px gap below the separator at y=212.
+       Tall bbox (222 px) comfortably holds all departure rows. -->
+  <text id="trains" x="248" y="248" font-family="Arial, sans-serif" fill="black"
+        data-bbox-width="540" data-bbox-height="222" />
 
 </svg>

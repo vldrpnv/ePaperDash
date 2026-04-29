@@ -26,7 +26,7 @@ timezone = "Europe/Berlin"
 day_of_week_format = "%A"
 month_format = "%B"
 [panels.renderer_config]
-font-size = "48"
+font-size = "26"
 font-weight = "700"
 
 [[panels]]
@@ -42,8 +42,8 @@ timezone = "Europe/Berlin"
 forecast_days = 5
 precision_hours = 1
 [panels.renderer_config]
-icon_size_factor = "0.7"
-tomorrow_icon_size_factor = "1.2"
+icon_size_factor = "0.5"
+tomorrow_icon_size_factor = "1.0"
 precip_prob_threshold = "0"
 precip_mm_threshold = "0"
 
@@ -59,7 +59,9 @@ window_start_mode = "start_at_next_minute"
 label_mode = "approx"
 sector_style = "end_hand"
 show_hour_hand = "true"
-show_tick_marks = "true"
+show_tick_marks = "false"
+show_face = "true"
+size_px = "154"
 
 [[panels]]
 source = "mvg_departures"
@@ -71,8 +73,12 @@ limit = 5
 timezone = "Europe/Berlin"
 [panels.renderer_config]
 font-family = "Arial, sans-serif"
+font-size = "20"
 fill = "black"
-departure-font-size = "18"
+show-line = "false"
+station-name-font-size = "26"
+departure-font-size = "20"
+departure-break-dy = "1.4em"
 
 [[panels]]
 source = "random_image"

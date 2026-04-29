@@ -258,6 +258,54 @@ def test_renderer_with_start_at_render_time_mode() -> None:
     assert isinstance(result[0], ImagePlacement)
 
 
+def test_show_face_false_does_not_raise() -> None:
+    """Disabling the clock face circle must not raise."""
+    renderer = AnalogClockRenderer()
+    data = ClockData(render_time=_dt(10, 0, 0))
+    result = renderer.render(data, _make_panel(show_face=False))
+    assert len(result) == 1
+
+
+def test_show_face_false_image_still_has_dark_pixels() -> None:
+    """With show_face=False, hands and center dot still produce dark pixels."""
+    renderer = AnalogClockRenderer()
+    data = ClockData(render_time=_dt(10, 0, 0))
+    result = renderer.render(data, _make_panel(show_face=False, label_mode="none"))
+    pixels = list(result[0].image.getdata())
+    assert any(p < 200 for p in pixels), "Clock with show_face=False rendered blank"
+
+
+def test_show_face_true_is_default() -> None:
+    """Omitting show_face must default to showing the circle."""
+    from epaper_dashboard_service.adapters.rendering.clock import _draw_clock
+    img_default = _draw_clock(
+        render_time=_dt(10, 0, 0),
+        size_px=80,
+        validity_window_minutes=5,
+        window_start_mode="start_at_next_minute",
+        label_mode="none",
+        show_hour_hand=False,
+        show_tick_marks=False,
+        sector_style="outer_arc",
+    )
+    img_no_face = _draw_clock(
+        render_time=_dt(10, 0, 0),
+        size_px=80,
+        validity_window_minutes=5,
+        window_start_mode="start_at_next_minute",
+        label_mode="none",
+        show_hour_hand=False,
+        show_tick_marks=False,
+        sector_style="outer_arc",
+        show_face=False,
+    )
+    # The default (show_face=True) image must have at least as many dark pixels as
+    # the faceless version — the circle adds extra dark pixels.
+    dark_default = sum(p < 200 for p in img_default.getdata())
+    dark_no_face = sum(p < 200 for p in img_no_face.getdata())
+    assert dark_default >= dark_no_face
+
+
 # ---------------------------------------------------------------------------
 # sector_style
 # ---------------------------------------------------------------------------

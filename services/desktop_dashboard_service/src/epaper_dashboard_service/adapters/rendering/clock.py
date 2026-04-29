@@ -20,6 +20,8 @@ Configuration keys in ``renderer_config`` (all optional):
                                ``"outer_arc"`` — thick arc along the rim spanning the window
                                ``"end_hand"``  — single long hand pointing to the window end
 - ``show_hour_hand``           bool, default True
+- ``show_face``                bool, default True  — draw the outer circle ring;
+                               set to False to show only hands and indicators
 - ``show_tick_marks``          bool, default True
 - ``x``                        int, default 0   — placement x on the dashboard
 - ``y``                        int, default 0   — placement y on the dashboard
@@ -108,6 +110,7 @@ def _draw_clock(
     show_hour_hand: bool,
     show_tick_marks: bool,
     sector_style: str = "outer_arc",
+    show_face: bool = True,
 ) -> Image.Image:
     """Render the analog clock face and return a grayscale PIL Image.
 
@@ -170,11 +173,12 @@ def _draw_clock(
     radius = size_px // 2 - 2  # just inside the image edge
 
     # 1. Outer circle
-    draw.ellipse(
-        [cx - radius, cy - radius, cx + radius, cy + radius],
-        outline=0,
-        width=max(1, size_px // 40),
-    )
+    if show_face:
+        draw.ellipse(
+            [cx - radius, cy - radius, cx + radius, cy + radius],
+            outline=0,
+            width=max(1, size_px // 40),
+        )
 
     # 2. Tick marks — 12 positions, one per 5-minute interval
     if show_tick_marks:
@@ -269,6 +273,7 @@ class AnalogClockRenderer(RendererPlugin):
         sector_style = str(cfg.get("sector_style", "outer_arc"))
         show_hour_hand = _parse_bool(cfg.get("show_hour_hand", True))
         show_tick_marks = _parse_bool(cfg.get("show_tick_marks", True))
+        show_face = _parse_bool(cfg.get("show_face", True))
         x = int(cfg.get("x", 0))
         y = int(cfg.get("y", 0))
 
@@ -281,6 +286,7 @@ class AnalogClockRenderer(RendererPlugin):
             show_hour_hand=show_hour_hand,
             show_tick_marks=show_tick_marks,
             sector_style=sector_style,
+            show_face=show_face,
         )
 
         return (ImagePlacement(image=image, x=x, y=y),)
