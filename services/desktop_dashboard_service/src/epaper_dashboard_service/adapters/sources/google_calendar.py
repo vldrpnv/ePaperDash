@@ -247,7 +247,7 @@ def _load_blacklist_terms(config: dict[str, Any]) -> tuple[str, ...]:
 
     normalised: list[str] = []
     for candidate in candidates:
-        term = candidate.strip().lower()
+        term = candidate.strip().casefold()
         if term and term not in normalised:
             normalised.append(term)
     return tuple(normalised)
@@ -322,7 +322,7 @@ def _expand_occurrences(
         for occurrence in _list_occurrence_values(exdate):
             recurrence_set.exdate(_coerce_occurrence_datetime(occurrence, start))
 
-    return [value for value in recurrence_set.between(window_start, window_end, inc=True) if value < window_end]
+    return list(recurrence_set.between(window_start, window_end, inc=True))
 
 
 def _component_values(component: Any, key: str) -> tuple[Any, ...]:
@@ -347,6 +347,8 @@ def _coerce_occurrence_datetime(value: date | datetime, start: datetime) -> date
             return value.astimezone(start.tzinfo)
         if value.tzinfo is not None and start.tzinfo is None:
             return value.replace(tzinfo=None)
+        if value.tzinfo is None and start.tzinfo is None:
+            return value
         return value
     if start.tzinfo is not None:
         return datetime.combine(value, time.min, tzinfo=start.tzinfo)
@@ -364,7 +366,7 @@ def _timed_occurrence_overlaps_day(
     day_start: datetime,
     day_end: datetime,
 ) -> bool:
-    if duration <= timedelta():
+    if duration == timedelta():
         return day_start <= occurrence < day_end
     return occurrence < day_end and occurrence + duration > day_start
 
