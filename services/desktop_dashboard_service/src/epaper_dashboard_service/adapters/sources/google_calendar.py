@@ -341,15 +341,11 @@ def _list_occurrence_values(value: Any) -> tuple[date | datetime, ...]:
 
 def _coerce_occurrence_datetime(value: date | datetime, start: datetime) -> datetime:
     if isinstance(value, datetime):
-        if value.tzinfo is None and start.tzinfo is not None:
-            return value.replace(tzinfo=start.tzinfo)
-        if value.tzinfo is not None and start.tzinfo is not None:
-            return value.astimezone(start.tzinfo)
-        if value.tzinfo is not None and start.tzinfo is None:
+        if start.tzinfo is None:
             return value.replace(tzinfo=None)
-        if value.tzinfo is None and start.tzinfo is None:
-            return value
-        return value
+        if value.tzinfo is None:
+            return value.replace(tzinfo=start.tzinfo)
+        return value.astimezone(start.tzinfo)
     if start.tzinfo is not None:
         return datetime.combine(value, time.min, tzinfo=start.tzinfo)
     return datetime.combine(value, time.min)
