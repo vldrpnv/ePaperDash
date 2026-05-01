@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from datetime import date, datetime
-from typing import Any, Protocol
+from typing import Any, Callable, Protocol
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode, urljoin
 from urllib.request import Request, urlopen
@@ -32,7 +32,7 @@ class FfbWasteCollectionSourcePlugin(SourcePlugin):
     def __init__(
         self,
         json_fetcher: JsonFetcher | None = None,
-        now_provider: callable | None = None,
+        now_provider: Callable[[], date | datetime] | None = None,
     ) -> None:
         self._json_fetcher = json_fetcher or _fetch_json
         self._now_provider = now_provider or date.today

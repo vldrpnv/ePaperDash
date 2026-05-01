@@ -12,9 +12,13 @@ Architecture notes, ADRs, and the current specification live in `architecture/`.
 - Initial source plugins:
   - calendar
   - weather forecast (Open-Meteo, MET Norway, OpenWeather)
+  - MVG departures
+  - Fürstenfeldbruck/Eichenau waste collection (AWIDO customer `ffb`)
 - Initial renderer plugins:
   - calendar_text
   - weather_text (icon-based timeline with configurable precision)
+  - train_departures_text
+  - waste_collection_text
 - MQTT publisher compatible with the firmware topic payload
 
 ## Quick start
@@ -82,6 +86,25 @@ Provider-specific keys:
 - `days`: horizon to display (for example `3` to `7`)
 - `max_periods`: maximum rendered forecast lines
 - `show_provider`: append provider name to the location header
+
+### Fürstenfeldbruck waste collection source configuration
+
+`source = "ffb_waste_collection"` resolves an AWIDO address in customer `ffb` and returns upcoming waste collection events:
+
+- `address` (recommended) — free-form address such as `"Ringstr. 12"`
+- or `street` plus optional `house_number`
+- `city` (optional, default `Eichenau`)
+- `timezone` (optional, default `Europe/Berlin`)
+- `waste_type` or `waste_types` (optional) — filter to one or more fractions such as `bio`, `restmuell`, `papier`, or `wertstoff`
+
+### Waste collection renderer configuration
+
+`renderer = "waste_collection_text"` renders waste pickups due within the next three days:
+
+- each line includes the waste type
+- tomorrow's line is bold and larger than the surrounding lines
+- `days` (optional, default `3`) adjusts the look-ahead window
+- `tomorrow-font-size` (optional) overrides the emphasized font size for tomorrow
 
 ## Layouts
 
