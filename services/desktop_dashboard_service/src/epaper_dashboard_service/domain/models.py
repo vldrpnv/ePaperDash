@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any
 
 from PIL import Image
@@ -109,6 +109,19 @@ class TrainDeparture:
 class TrainDepartures:
     station_name: str
     entries: tuple[TrainDeparture, ...]
+
+
+@dataclass(frozen=True)
+class WasteCollectionEntry:
+    date: date
+    waste_type: str
+
+
+@dataclass(frozen=True)
+class WasteCollectionSchedule:
+    address_label: str
+    reference_date: date
+    entries: tuple[WasteCollectionEntry, ...]
 
 
 @dataclass(frozen=True)
