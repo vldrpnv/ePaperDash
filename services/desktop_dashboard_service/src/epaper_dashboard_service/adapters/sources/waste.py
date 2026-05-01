@@ -238,13 +238,5 @@ def _fetch_json(url: str) -> Any:
     try:
         with urlopen(req, timeout=10) as response:
             return json.load(response)
-    except HTTPError as error:
-        raise SourceUnavailableError("ffb_waste_collection source unavailable") from error
-    except URLError as error:
-        raise SourceUnavailableError("ffb_waste_collection source unavailable") from error
-    except TimeoutError as error:
-        raise SourceUnavailableError("ffb_waste_collection source unavailable") from error
-    except OSError as error:
-        raise SourceUnavailableError("ffb_waste_collection source unavailable") from error
-    except json.JSONDecodeError as error:
+    except (HTTPError, URLError, TimeoutError, OSError, json.JSONDecodeError) as error:
         raise SourceUnavailableError("ffb_waste_collection source unavailable") from error

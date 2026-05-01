@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import date
+
 from epaper_dashboard_service.domain.models import (
     DashboardTextBlock,
     PanelDefinition,
@@ -28,7 +30,7 @@ class WasteCollectionTextRenderer(RendererPlugin):
         if visible_entries:
             lines = tuple(_render_entry(entry, data.reference_date, panel) for entry in visible_entries)
         else:
-            lines = ("Keine Abholung in den nächsten 3 Tagen",)
+            lines = (f"Keine Abholung in den nächsten {days} Tagen",)
 
         return (
             DashboardTextBlock(
@@ -41,7 +43,7 @@ class WasteCollectionTextRenderer(RendererPlugin):
 
 def _render_entry(
     entry: WasteCollectionEntry,
-    reference_date,
+    reference_date: date,
     panel: PanelDefinition,
 ) -> str | StyledLine:
     days_until = (entry.date - reference_date).days
