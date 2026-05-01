@@ -17,6 +17,12 @@ Configuration keys
 ``max_events`` (optional, default ``8``)
     Maximum number of events to return.  Events are sorted by start time
     (all-day events appear before timed events that share the same date).
+
+``blacklist_terms`` (optional)
+    Case-insensitive substrings; matching event titles are excluded.
+
+``filter_word`` (optional)
+    Single-string shorthand for one blacklist term.
 """
 from __future__ import annotations
 

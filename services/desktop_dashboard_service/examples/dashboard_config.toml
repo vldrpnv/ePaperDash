@@ -73,6 +73,9 @@ slot = "gcal_events"
 calendar_url = "YOURSECRETURL"
 timezone = "Europe/Berlin"
 max_events = 8
+# Optional title filters for hidden/private events:
+# blacklist_terms = ["Focus time", "School holiday"]
+# filter_word = "Private"
 [panels.renderer_config]
 font-family = "Arial, sans-serif"
 font-size = "16"

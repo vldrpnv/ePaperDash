@@ -53,6 +53,20 @@ Each panel selects:
 - `source_config`: source plugin configuration
 - `renderer_config`: renderer plugin configuration
 
+### Google Calendar source configuration
+
+`source = "google_calendar"` reads an iCal feed (for example a Google Calendar
+secret iCal URL) and supports:
+
+- `calendar_url` (required)
+- `timezone` (optional, default `UTC`)
+- `max_events` (optional, default `8`)
+- `blacklist_terms` (optional list of case-insensitive title substrings to skip)
+- `filter_word` (optional single blacklist substring shorthand)
+
+Recurring events are expanded from the iCal recurrence set, so `RRULE` / `RDATE`
+instances for the target day are included and `EXDATE` instances are omitted.
+
 ### Weather source configuration
 
 `source = "weather_forecast"` supports multiple free providers under one plugin:
