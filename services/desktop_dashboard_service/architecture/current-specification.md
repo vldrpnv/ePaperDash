@@ -135,7 +135,7 @@ Window start modes:
 
 - `calendar`
 - `clock` — returns a `ClockData` with the current timezone-aware `render_time`; supports `source_config.timezone` (IANA timezone name, default `"UTC"`)
-- `google_calendar` — fetches today's events from an iCalendar (iCal) feed URL (e.g. the Google Calendar *Secret address in iCal format*); supports `source_config.calendar_url` (required), `source_config.timezone` (IANA timezone name, default `"UTC"`), and `source_config.max_events` (integer, default `8`); maps network and HTTP errors to `SourceUnavailableError`
+- `google_calendar` — fetches today's events from an iCalendar (iCal) feed URL (e.g. the Google Calendar *Secret address in iCal format*); supports `source_config.calendar_url` (required), `source_config.timezone` (IANA timezone name, default `"UTC"`), `source_config.max_events` (integer, default `8`), and optional title blacklist filtering through `source_config.blacklist_terms` (list of case-insensitive substrings) or `source_config.filter_word` (single substring shorthand); expands recurring events from `RRULE`/`RDATE` and excludes instances listed in `EXDATE`; maps network and HTTP errors to `SourceUnavailableError`
 - `weather_forecast` with provider selection:
   - Open-Meteo (free hourly forecast)
   - MET Norway (free hourly forecast)
@@ -196,6 +196,8 @@ Window start modes:
 - `clock` source returns a timezone-aware `ClockData.render_time` using the configured IANA timezone (default `"UTC"`).
 - `google_calendar` source fetches today's events from an iCal URL (e.g. Google Calendar secret address) and returns up to `max_events` (default 8) `GoogleCalendarEvent` records for the local calendar date derived from `source_config.timezone`.
 - `google_calendar` source normalises timed events to the configured timezone and places all-day events before timed events when sorting.
+- `google_calendar` source expands recurring iCal events from `RRULE` and `RDATE` for the target local date and omits occurrences excluded by `EXDATE`.
+- `google_calendar` source filters out events whose titles contain any configured blacklist term, matching case-insensitively.
 - `google_calendar` source maps HTTP errors, network errors, and iCal parse failures to `SourceUnavailableError`.
 - `google_calendar` source raises `ValueError` (fast-fail) when `calendar_url` is absent or `timezone` is not a valid IANA timezone name.
 - `google_calendar_text` renderer formats all-day events as `"• Title"` and timed events as `"HH:MM Title"`.
