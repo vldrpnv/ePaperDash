@@ -1,7 +1,6 @@
 """Tests for the google_calendar source plugin."""
 from __future__ import annotations
 
-import logging
 from datetime import date, datetime, timezone
 from urllib.error import URLError
 from zoneinfo import ZoneInfo
@@ -383,15 +382,15 @@ def test_parse_today_events_filters_blacklisted_titles_case_insensitively() -> N
 
 
 def test_google_calendar_source_filter_word_shorthand_filters_titles() -> None:
-    plugin = _FakePlugin(raw_ical=_ICAL_FILTERED_EVENTS)
-    result = plugin.fetch(
-        {
-            "calendar_url": "http://example.com/cal.ics",
-            "timezone": "UTC",
-            "filter_word": "PRIVATE",
-        }
+    blacklist_terms = _load_blacklist_terms({"filter_word": "PRIVATE"})
+    events = _parse_today_events(
+        _ICAL_FILTERED_EVENTS,
+        _TODAY,
+        ZoneInfo("UTC"),
+        max_events=8,
+        blacklist_terms=blacklist_terms,
     )
-    assert [event.title for event in result.events] == ["Focus time"]
+    assert [event.title for event in events] == ["Focus time"]
 
 
 def test_load_blacklist_terms_accepts_list_and_filter_word() -> None:

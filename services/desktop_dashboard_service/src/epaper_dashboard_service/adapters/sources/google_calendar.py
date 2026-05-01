@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import date, datetime, timezone
+from datetime import date, datetime, time, timedelta, timezone
 from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
@@ -51,13 +51,15 @@ class GoogleCalendarSourcePlugin(SourcePlugin):
         calendar_url = str(config["calendar_url"])
         max_events = int(config.get("max_events", _DEFAULT_MAX_EVENTS))
         timezone_name = str(config.get("timezone", _DEFAULT_TIMEZONE))
+        blacklist_terms = _load_blacklist_terms(config)
         tz = _load_timezone(timezone_name)
 
         _LOGGER.debug(
-            "GoogleCalendar fetch start url=%r timezone=%s max_events=%d",
+            "GoogleCalendar fetch start url=%r timezone=%s max_events=%d blacklist_terms=%d",
             calendar_url,
             timezone_name,
             max_events,
+            len(blacklist_terms),
         )
 
         raw_ical = _fetch_ical(calendar_url)
@@ -71,7 +73,13 @@ class GoogleCalendarSourcePlugin(SourcePlugin):
         )
 
         try:
-            events = _parse_today_events(raw_ical, today, tz, max_events)
+            events = _parse_today_events(
+                raw_ical,
+                today,
+                tz,
+                max_events,
+                blacklist_terms=blacklist_terms,
+            )
         except Exception as parse_error:
             raise SourceUnavailableError(
                 f"{self.name} source unavailable: failed to parse iCal data"
@@ -90,6 +98,8 @@ def _parse_today_events(
     today: date,
     tz: ZoneInfo,
     max_events: int,
+    *,
+    blacklist_terms: tuple[str, ...] = (),
 ) -> list[GoogleCalendarEvent]:
     """Parse iCal bytes and return events occurring on *today* (in *tz*)."""
     try:
@@ -109,9 +119,14 @@ def _parse_today_events(
             continue
 
         total_vevents += 1
-        event = _parse_vevent(component, today, tz)
-        if event is not None:
-            today_events.append(event)
+        today_events.extend(
+            _parse_vevent(
+                component,
+                today,
+                tz,
+                blacklist_terms=blacklist_terms,
+            )
+        )
 
     _LOGGER.debug(
         "GoogleCalendar iCal walk vevents_total=%d matched_today=%d date=%s",
@@ -125,83 +140,80 @@ def _parse_today_events(
     return today_events[:max_events]
 
 
-def _parse_vevent(component: Any, today: date, tz: ZoneInfo) -> GoogleCalendarEvent | None:
-    """Return a ``GoogleCalendarEvent`` if the VEVENT falls on *today*, else ``None``."""
-    try:
-        from icalendar import vDatetime, vDate  # type: ignore[import-untyped]
-    except ImportError:
-        return None
-
+def _parse_vevent(
+    component: Any,
+    today: date,
+    tz: ZoneInfo,
+    *,
+    blacklist_terms: tuple[str, ...] = (),
+) -> list[GoogleCalendarEvent]:
+    """Return ``GoogleCalendarEvent`` values for VEVENT occurrences on *today*."""
     dtstart = component.get("DTSTART")
     dtend = component.get("DTEND")
+    duration = component.get("DURATION")
     summary = str(component.get("SUMMARY", "")).strip()
-    rrule = component.get("RRULE")
 
     if dtstart is None:
         _LOGGER.debug("GoogleCalendar skip event=%r reason=no_dtstart", summary)
-        return None
+        return []
+
+    if _title_matches_blacklist(summary, blacklist_terms):
+        _LOGGER.debug("GoogleCalendar skip event=%r reason=blacklist_match", summary)
+        return []
 
     start_dt = dtstart.dt
 
     # All-day event: dtstart.dt is a date, not a datetime.
     if isinstance(start_dt, date) and not isinstance(start_dt, datetime):
-        end_dt = dtend.dt if dtend is not None else None
-        if _allday_spans_today(start_dt, end_dt, today):
-            _LOGGER.debug("GoogleCalendar include all_day event=%r start=%s", summary, start_dt)
-            return GoogleCalendarEvent(
-                title=summary,
-                start_time=None,
-                end_time=None,
-                all_day=True,
-            )
-        _LOGGER.debug(
-            "GoogleCalendar skip all_day event=%r start=%s end=%s today=%s",
-            summary, start_dt, end_dt, today,
+        duration_days = _all_day_duration_days(start_dt, dtend.dt if dtend is not None else None, duration)
+        occurrences = _expand_occurrences(
+            component,
+            start=_normalise_all_day_datetime(start_dt),
+            window_start=_normalise_all_day_datetime(today - timedelta(days=duration_days - 1)),
+            window_end=_normalise_all_day_datetime(today + timedelta(days=1)),
         )
-        if rrule:
-            _LOGGER.warning(
-                "GoogleCalendar event=%r has RRULE=%r but recurring expansion is not supported "
-                "— only the first occurrence (start=%s) is evaluated; "
-                "future instances of this recurring event will not appear",
-                summary, str(rrule.to_ical().decode()), start_dt,
-            )
-        return None
+        if any(_all_day_occurrence_spans_today(occurrence, duration_days, today) for occurrence in occurrences):
+            _LOGGER.debug("GoogleCalendar include all_day event=%r today=%s", summary, today)
+            return [
+                GoogleCalendarEvent(
+                    title=summary,
+                    start_time=None,
+                    end_time=None,
+                    all_day=True,
+                )
+            ]
+
+        _LOGGER.debug("GoogleCalendar skip all_day event=%r today=%s", summary, today)
+        return []
 
     # Timed event: normalise to target timezone.
-    if start_dt.tzinfo is None:
-        start_dt = start_dt.replace(tzinfo=tz)
-    else:
-        start_dt = start_dt.astimezone(tz)
-
-    if start_dt.date() != today:
-        _LOGGER.debug(
-            "GoogleCalendar skip timed event=%r start_local=%s today=%s",
-            summary, start_dt.date(), today,
-        )
-        if rrule:
-            _LOGGER.warning(
-                "GoogleCalendar event=%r has RRULE=%r but recurring expansion is not supported "
-                "— only the first occurrence (start_local=%s) is evaluated; "
-                "future instances of this recurring event will not appear",
-                summary, str(rrule.to_ical().decode()), start_dt.date(),
-            )
-        return None
-
-    end_dt_aware: datetime | None = None
-    if dtend is not None and isinstance(dtend.dt, datetime):
-        end_dt_aware = dtend.dt
-        if end_dt_aware.tzinfo is None:
-            end_dt_aware = end_dt_aware.replace(tzinfo=tz)
-        else:
-            end_dt_aware = end_dt_aware.astimezone(tz)
-
-    _LOGGER.debug("GoogleCalendar include timed event=%r start_local=%s", summary, start_dt)
-    return GoogleCalendarEvent(
-        title=summary,
-        start_time=start_dt,
-        end_time=end_dt_aware,
-        all_day=False,
+    start_dt = _normalise_datetime(start_dt, tz)
+    duration_delta = _timed_duration(start_dt, dtend.dt if dtend is not None else None, duration, tz)
+    day_start = datetime.combine(today, time.min, tzinfo=tz)
+    day_end = day_start + timedelta(days=1)
+    search_start = day_start - max(duration_delta, timedelta())
+    occurrences = _expand_occurrences(
+        component,
+        start=start_dt,
+        window_start=search_start,
+        window_end=day_end,
     )
+
+    matching_events = [
+        GoogleCalendarEvent(
+            title=summary,
+            start_time=occurrence,
+            end_time=occurrence + duration_delta if duration_delta > timedelta() else None,
+            all_day=False,
+        )
+        for occurrence in occurrences
+        if _timed_occurrence_overlaps_day(occurrence, duration_delta, day_start, day_end)
+    ]
+    if matching_events:
+        _LOGGER.debug("GoogleCalendar include timed event=%r count=%d", summary, len(matching_events))
+    else:
+        _LOGGER.debug("GoogleCalendar skip timed event=%r today=%s", summary, today)
+    return matching_events
 
 
 def _allday_spans_today(start: date, end: date | None, today: date) -> bool:
@@ -213,6 +225,142 @@ def _allday_spans_today(start: date, end: date | None, today: date) -> bool:
     if end is None:
         return start == today
     return start <= today < end
+
+
+def _load_blacklist_terms(config: dict[str, Any]) -> tuple[str, ...]:
+    blacklist_terms = config.get("blacklist_terms", ())
+    filter_word = config.get("filter_word")
+
+    candidates: list[str] = []
+    if isinstance(blacklist_terms, str):
+        candidates.append(blacklist_terms)
+    else:
+        candidates.extend(str(term) for term in blacklist_terms)
+    if filter_word is not None:
+        candidates.append(str(filter_word))
+
+    normalised: list[str] = []
+    for candidate in candidates:
+        term = candidate.strip().lower()
+        if term and term not in normalised:
+            normalised.append(term)
+    return tuple(normalised)
+
+
+def _title_matches_blacklist(title: str, blacklist_terms: tuple[str, ...]) -> bool:
+    normalised_title = title.casefold()
+    return any(term in normalised_title for term in blacklist_terms)
+
+
+def _normalise_datetime(value: datetime, tz: ZoneInfo) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=tz)
+    return value.astimezone(tz)
+
+
+def _normalise_all_day_datetime(value: date) -> datetime:
+    return datetime.combine(value, time.min)
+
+
+def _all_day_duration_days(
+    start: date,
+    end: date | None,
+    duration: Any,
+) -> int:
+    if end is not None:
+        return max((end - start).days, 1)
+    if isinstance(duration, timedelta):
+        return max(duration.days, 1)
+    return 1
+
+
+def _timed_duration(
+    start: datetime,
+    end: datetime | None,
+    duration: Any,
+    tz: ZoneInfo,
+) -> timedelta:
+    if isinstance(end, datetime):
+        normalised_end = _normalise_datetime(end, tz)
+        return max(normalised_end - start, timedelta())
+    if isinstance(duration, timedelta):
+        return max(duration, timedelta())
+    return timedelta()
+
+
+def _expand_occurrences(
+    component: Any,
+    *,
+    start: datetime,
+    window_start: datetime,
+    window_end: datetime,
+) -> list[datetime]:
+    try:
+        from dateutil.rrule import rruleset, rrulestr
+    except ImportError as exc:
+        raise SourceUnavailableError(
+            "google_calendar source requires the 'python-dateutil' package"
+        ) from exc
+
+    recurrence_set = rruleset()
+    recurrence_set.rdate(start)
+
+    for rrule in _component_values(component, "RRULE"):
+        recurrence_set.rrule(rrulestr(rrule.to_ical().decode(), dtstart=start))
+
+    for rdate in _component_values(component, "RDATE"):
+        for occurrence in _list_occurrence_values(rdate):
+            recurrence_set.rdate(_coerce_occurrence_datetime(occurrence, start))
+
+    for exdate in _component_values(component, "EXDATE"):
+        for occurrence in _list_occurrence_values(exdate):
+            recurrence_set.exdate(_coerce_occurrence_datetime(occurrence, start))
+
+    return [value for value in recurrence_set.between(window_start, window_end, inc=True) if value < window_end]
+
+
+def _component_values(component: Any, key: str) -> tuple[Any, ...]:
+    values = component.get(key, [])
+    if values is None:
+        return ()
+    if isinstance(values, list):
+        return tuple(values)
+    return (values,)
+
+
+def _list_occurrence_values(value: Any) -> tuple[date | datetime, ...]:
+    dts = getattr(value, "dts", ())
+    return tuple(dt_value.dt for dt_value in dts)
+
+
+def _coerce_occurrence_datetime(value: date | datetime, start: datetime) -> datetime:
+    if isinstance(value, datetime):
+        if value.tzinfo is None and start.tzinfo is not None:
+            return value.replace(tzinfo=start.tzinfo)
+        if value.tzinfo is not None and start.tzinfo is not None:
+            return value.astimezone(start.tzinfo)
+        if value.tzinfo is not None and start.tzinfo is None:
+            return value.replace(tzinfo=None)
+        return value
+    if start.tzinfo is not None:
+        return datetime.combine(value, time.min, tzinfo=start.tzinfo)
+    return datetime.combine(value, time.min)
+
+
+def _all_day_occurrence_spans_today(occurrence: datetime, duration_days: int, today: date) -> bool:
+    occurrence_date = occurrence.date()
+    return _allday_spans_today(occurrence_date, occurrence_date + timedelta(days=duration_days), today)
+
+
+def _timed_occurrence_overlaps_day(
+    occurrence: datetime,
+    duration: timedelta,
+    day_start: datetime,
+    day_end: datetime,
+) -> bool:
+    if duration <= timedelta():
+        return day_start <= occurrence < day_end
+    return occurrence < day_end and occurrence + duration > day_start
 
 
 # ---------------------------------------------------------------------------
