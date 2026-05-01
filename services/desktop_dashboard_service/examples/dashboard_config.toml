@@ -72,6 +72,7 @@ slot = "gcal_events"
 # See secrets.toml.tmpl for the expected format.
 calendar_url = "${gcal_url}"
 timezone = "Europe/Berlin"
+# Keep the calendar list short enough to leave readable space for waste below it.
 max_events = 5
 # Optional title filters for hidden/private events:
 # blacklist_terms = ["Focus time", "School holiday"]

@@ -16,6 +16,7 @@ _BASE_URL = "https://awido.cubefour.de/"
 _CUSTOMER = "ffb"
 _DEFAULT_CITY = "Eichenau"
 _DEFAULT_TIMEZONE = "Europe/Berlin"
+_REQUEST_TIMEOUT_SECONDS = 10
 _DEFAULT_HEADERS = {
     "Accept": "application/json",
     "User-Agent": "Mozilla/5.0 (compatible; ePaperDash/1.0)",
@@ -230,7 +231,7 @@ def _load_timezone(timezone_name: str) -> ZoneInfo:
 def _fetch_json(url: str) -> Any:
     req = Request(url, headers=_DEFAULT_HEADERS)
     try:
-        with urlopen(req, timeout=10) as response:
+        with urlopen(req, timeout=_REQUEST_TIMEOUT_SECONDS) as response:
             return json.load(response)
     except (HTTPError, URLError, TimeoutError, OSError, json.JSONDecodeError) as error:
         raise SourceUnavailableError("ffb_waste_collection source unavailable") from error
