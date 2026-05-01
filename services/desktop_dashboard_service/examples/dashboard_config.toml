@@ -70,7 +70,7 @@ slot = "gcal_events"
 [panels.source_config]
 # Replace with your Google Calendar secret iCal address:
 # Settings → [calendar] → Integrate calendar → Secret address in iCal format
-calendar_url = "https://calendar.google.com/calendar/ical/YOUR_CALENDAR_ID/private-XXXXXXXXXXXXXXXX/basic.ics"
+calendar_url = "YOURSECRETURL"
 timezone = "Europe/Berlin"
 max_events = 8
 [panels.renderer_config]

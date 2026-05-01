@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import logging
 import time
 from pathlib import Path
 
@@ -20,13 +21,25 @@ def main() -> int:
         default=None,
         help="Override the check interval in seconds (default: value from config, or 300)",
     )
+    parser.add_argument(
+        "-v", "--verbose",
+        action="store_true",
+        help="Enable DEBUG logging for all service components",
+    )
     args = parser.parse_args()
+
+    log_level = logging.DEBUG if args.verbose else logging.INFO
+    logging.basicConfig(
+        level=log_level,
+        format="%(asctime)s %(levelname)-8s %(name)s: %(message)s",
+        datefmt="%H:%M:%S",
+    )
 
     configuration = load_configuration(args.config.resolve())
     interval_seconds = args.interval or configuration.service.interval_seconds
     application = build_application(configuration.mqtt)
 
-    print(f"Starting dashboard service (interval={interval_seconds}s)")
+    print(f"Starting dashboard service (interval={interval_seconds}s, log_level={logging.getLevelName(log_level)})")
 
     last_payload_hash: str | None = None
     try:

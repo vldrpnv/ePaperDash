@@ -275,3 +275,65 @@ def test_google_calendar_source_returns_google_calendar_events_type() -> None:
     plugin = _FakePlugin(raw_ical=_ICAL_ONE_ALLDAY)
     result = plugin.fetch({"calendar_url": "http://example.com/cal.ics", "timezone": "UTC"})
     assert isinstance(result, GoogleCalendarEvents)
+
+
+# ---------------------------------------------------------------------------
+# Recurring events (RRULE) — limitation warning
+# ---------------------------------------------------------------------------
+
+_ICAL_RECURRING_TIMED = b"""\
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Test//Test//EN
+BEGIN:VEVENT
+SUMMARY:Weekly standup
+DTSTART:20260101T090000Z
+DTEND:20260101T093000Z
+RRULE:FREQ=WEEKLY;BYDAY=WE
+END:VEVENT
+END:VCALENDAR
+"""
+
+_ICAL_RECURRING_ALLDAY = b"""\
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Test//Test//EN
+BEGIN:VEVENT
+SUMMARY:Monthly review
+DTSTART;VALUE=DATE:20260101
+DTEND;VALUE=DATE:20260102
+RRULE:FREQ=MONTHLY
+END:VEVENT
+END:VCALENDAR
+"""
+
+
+def test_recurring_timed_event_not_in_past_is_not_included() -> None:
+    """A recurring event whose first occurrence is not today is excluded (RRULE not expanded)."""
+    # _TODAY is 2026-04-29; DTSTART is 2026-01-01 — different day.
+    events = _parse_today_events(_ICAL_RECURRING_TIMED, _TODAY, ZoneInfo("UTC"), max_events=8)
+    assert events == []
+
+
+def test_recurring_allday_event_not_spanning_today_is_not_included() -> None:
+    """A recurring all-day event whose first occurrence is not today is excluded."""
+    events = _parse_today_events(_ICAL_RECURRING_ALLDAY, _TODAY, ZoneInfo("UTC"), max_events=8)
+    assert events == []
+
+
+def test_recurring_timed_event_emits_warning(caplog: pytest.LogCaptureFixture) -> None:
+    """A recurring event that is skipped due to date mismatch emits a WARNING about RRULE."""
+    import logging
+    with caplog.at_level(logging.WARNING, logger="epaper_dashboard_service.adapters.sources.google_calendar"):
+        _parse_today_events(_ICAL_RECURRING_TIMED, _TODAY, ZoneInfo("UTC"), max_events=8)
+    assert any("RRULE" in record.message for record in caplog.records)
+    assert any("Weekly standup" in record.message for record in caplog.records)
+
+
+def test_recurring_allday_event_emits_warning(caplog: pytest.LogCaptureFixture) -> None:
+    """A recurring all-day event that is skipped due to date mismatch emits a WARNING about RRULE."""
+    import logging
+    with caplog.at_level(logging.WARNING, logger="epaper_dashboard_service.adapters.sources.google_calendar"):
+        _parse_today_events(_ICAL_RECURRING_ALLDAY, _TODAY, ZoneInfo("UTC"), max_events=8)
+    assert any("RRULE" in record.message for record in caplog.records)
+    assert any("Monthly review" in record.message for record in caplog.records)
