@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import date
+from typing import Any, Callable
 from urllib.error import URLError
 
 import pytest
@@ -39,7 +40,7 @@ _CALENDAR_RESPONSE = {
 }
 
 
-def _make_json_fetcher() -> tuple[list[str], callable]:
+def _make_json_fetcher() -> tuple[list[str], Callable[[str], Any]]:
     visited_urls: list[str] = []
 
     def fetcher(url: str):

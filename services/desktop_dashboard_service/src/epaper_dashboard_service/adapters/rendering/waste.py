@@ -20,7 +20,7 @@ class WasteCollectionTextRenderer(RendererPlugin):
     supported_type = WasteCollectionSchedule
 
     def render(self, data: WasteCollectionSchedule, panel: PanelDefinition) -> tuple[DashboardTextBlock, ...]:
-        days = max(1, int(panel.renderer_config.get("days", 3)))
+        days = _parse_days(panel)
         visible_entries = tuple(
             entry
             for entry in data.entries
@@ -30,7 +30,8 @@ class WasteCollectionTextRenderer(RendererPlugin):
         if visible_entries:
             lines = tuple(_render_entry(entry, data.reference_date, panel) for entry in visible_entries)
         else:
-            lines = (f"Keine Abholung in den nächsten {days} Tagen",)
+            unit = "Tag" if days == 1 else "Tagen"
+            lines = (f"Keine Abholung in den nächsten {days} {unit}",)
 
         return (
             DashboardTextBlock(
@@ -69,6 +70,14 @@ def _tomorrow_font_size(panel: PanelDefinition) -> int:
     if base_size is not None:
         return int(base_size) + 4
     return 24
+
+
+def _parse_days(panel: PanelDefinition) -> int:
+    raw_value = panel.renderer_config.get("days", 3)
+    try:
+        return max(1, int(raw_value))
+    except (TypeError, ValueError) as error:
+        raise ValueError(f"Invalid days for waste_collection_text renderer: {raw_value!r}") from error
 
 
 def _text_attributes(panel: PanelDefinition) -> dict[str, str]:

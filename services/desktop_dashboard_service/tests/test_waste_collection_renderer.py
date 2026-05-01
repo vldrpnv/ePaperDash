@@ -39,10 +39,12 @@ def test_renderer_limits_output_to_next_three_days() -> None:
     assert len(blocks) == 1
     assert blocks[0].slot == "waste"
     assert len(blocks[0].lines) == 2
+    assert isinstance(blocks[0].lines[0], str)
     assert blocks[0].lines[0] == "Heute · Restmülltonne"
     tomorrow_line = blocks[0].lines[1]
     assert isinstance(tomorrow_line, StyledLine)
-    assert "".join(span.text for span in tomorrow_line.spans) == "Morgen · Biotonne"
+    assert len(tomorrow_line.spans) == 1
+    assert tomorrow_line.spans[0].text == "Morgen · Biotonne"
 
 
 def test_renderer_highlights_tomorrow_with_bold_larger_text() -> None:

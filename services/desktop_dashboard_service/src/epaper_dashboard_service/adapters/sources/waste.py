@@ -50,10 +50,6 @@ class FfbWasteCollectionSourcePlugin(SourcePlugin):
             street_key = self._lookup_street(place_key, street, base_url)
             address_key = self._lookup_house_number(street_key, house_number, base_url) if house_number else street_key
             entries = self._fetch_entries(address_key, reference_date, waste_type_filters, base_url)
-        except SourceUnavailableError:
-            raise
-        except ValueError:
-            raise
         except (URLError, TimeoutError, OSError, json.JSONDecodeError, KeyError, TypeError, IndexError) as error:
             raise SourceUnavailableError("ffb_waste_collection source unavailable") from error
 
@@ -195,8 +191,6 @@ def _waste_type_matches(waste_type: str, filters: tuple[str, ...]) -> bool:
         if normalized_waste_type == waste_filter:
             return True
         if normalized_waste_type.startswith(waste_filter):
-            return True
-        if waste_filter.startswith(normalized_waste_type):
             return True
     return False
 
