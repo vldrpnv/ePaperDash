@@ -129,7 +129,7 @@ class FfbWasteCollectionSourcePlugin(SourcePlugin):
             entry_date = datetime.strptime(raw_date, "%Y%m%d").date()
             if entry_date < reference_date:
                 continue
-            for fraction_code in calendar_item.get("fr", ()):
+            for fraction_code in calendar_item.get("fr") or ():
                 waste_type = fraction_names.get(str(fraction_code))
                 if waste_type is None:
                     continue

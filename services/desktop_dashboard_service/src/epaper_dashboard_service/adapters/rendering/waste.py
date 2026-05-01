@@ -13,6 +13,10 @@ from epaper_dashboard_service.domain.models import (
 from epaper_dashboard_service.domain.ports import RendererPlugin
 
 _WEEKDAY_LABELS = ("Mo", "Di", "Mi", "Do", "Fr", "Sa", "So")
+_MONTH_LABELS = (
+    "Jan", "Feb", "Mär", "Apr", "Mai", "Jun",
+    "Jul", "Aug", "Sep", "Okt", "Nov", "Dez",
+)
 
 
 class WasteCollectionTextRenderer(RendererPlugin):
@@ -20,18 +24,13 @@ class WasteCollectionTextRenderer(RendererPlugin):
     supported_type = WasteCollectionSchedule
 
     def render(self, data: WasteCollectionSchedule, panel: PanelDefinition) -> tuple[DashboardTextBlock, ...]:
-        days = _parse_days(panel)
-        visible_entries = tuple(
-            entry
-            for entry in data.entries
-            if 0 <= (entry.date - data.reference_date).days < days
-        )
+        max_entries = _parse_max_entries(panel)
+        visible_entries = data.entries[:max_entries]
 
         if visible_entries:
             lines = tuple(_render_entry(entry, data.reference_date, panel) for entry in visible_entries)
         else:
-            unit = "Tag" if days == 1 else "Tagen"
-            lines = (f"Keine Abholung in den nächsten {days} {unit}",)
+            lines = ("Keine bevorstehende Abholung",)
 
         return (
             DashboardTextBlock(
@@ -48,20 +47,23 @@ def _render_entry(
     panel: PanelDefinition,
 ) -> str | StyledLine:
     days_until = (entry.date - reference_date).days
-    if days_until == 0:
-        return f"Heute · {entry.waste_type}"
-
-    label = "Morgen" if days_until == 1 else f"{_WEEKDAY_LABELS[entry.date.weekday()]} {entry.date:%d.%m.}"
+    label = _format_date_label(entry.date)
     text = f"{label} · {entry.waste_type}"
-    if days_until == 1:
+    if days_until <= 1:
         return StyledLine(
             spans=(TextSpan(text=text, bold=True),),
-            font_size=_tomorrow_font_size(panel),
+            font_size=_emphasis_font_size(panel),
         )
     return text
 
 
-def _tomorrow_font_size(panel: PanelDefinition) -> int:
+def _format_date_label(entry_date: date) -> str:
+    weekday = _WEEKDAY_LABELS[entry_date.weekday()]
+    month = _MONTH_LABELS[entry_date.month - 1]
+    return f"{weekday}, {entry_date.day:02d}. {month}"
+
+
+def _emphasis_font_size(panel: PanelDefinition) -> int:
     configured = panel.renderer_config.get("tomorrow-font-size")
     if configured is not None:
         return int(configured)
@@ -72,12 +74,12 @@ def _tomorrow_font_size(panel: PanelDefinition) -> int:
     return 24
 
 
-def _parse_days(panel: PanelDefinition) -> int:
-    raw_value = panel.renderer_config.get("days", 3)
+def _parse_max_entries(panel: PanelDefinition) -> int:
+    raw_value = panel.renderer_config.get("max_entries", 3)
     try:
         return max(1, int(raw_value))
     except (TypeError, ValueError) as error:
-        raise ValueError(f"Invalid days for waste_collection_text renderer: {raw_value!r}") from error
+        raise ValueError(f"Invalid max_entries for waste_collection_text renderer: {raw_value!r}") from error
 
 
 def _text_attributes(panel: PanelDefinition) -> dict[str, str]:

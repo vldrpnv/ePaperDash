@@ -39,6 +39,19 @@ _CALENDAR_RESPONSE = {
     ],
 }
 
+_CALENDAR_RESPONSE_WITH_HOLIDAY = {
+    "fracts": [
+        {"snm": "REST", "nm": "Restmülltonne"},
+        {"snm": "BIO", "nm": "Biotonne"},
+    ],
+    "calendar": [
+        {"dt": "20240501", "ad": "Ringstr. 12", "fr": ["REST"]},
+        # Public holiday — AWIDO returns fr: null and ft: <name>
+        {"dt": "20240502", "ad": None, "fr": None, "ft": "Tag der Arbeit", "id": None},
+        {"dt": "20240503", "ad": "Ringstr. 12", "fr": ["BIO"]},
+    ],
+}
+
 
 def _make_json_fetcher() -> tuple[list[str], Callable[[str], Any]]:
     visited_urls: list[str] = []
@@ -114,3 +127,30 @@ def test_source_maps_transient_lookup_failures_to_source_unavailable() -> None:
 
     with pytest.raises(SourceUnavailableError, match="ffb_waste_collection source unavailable"):
         plugin.fetch({"address": "Ringstr. 12"})
+
+
+def test_source_skips_holiday_entries_with_null_fr() -> None:
+    """Calendar items from AWIDO for public holidays have fr=null; they must be skipped."""
+
+    def fetcher(url: str):
+        if "getPlaces" in url:
+            return _PLACES_RESPONSE
+        if "getGroupedStreets" in url:
+            return _STREETS_RESPONSE
+        if "getStreetAddons" in url:
+            return _HOUSE_NUMBERS_RESPONSE
+        if "getData" in url:
+            return _CALENDAR_RESPONSE_WITH_HOLIDAY
+        raise AssertionError(f"Unexpected URL: {url}")
+
+    plugin = FfbWasteCollectionSourcePlugin(
+        json_fetcher=fetcher,
+        now_provider=lambda: date(2024, 5, 1),
+    )
+
+    result = plugin.fetch({"address": "Ringstr. 12"})
+
+    assert result.entries == (
+        WasteCollectionEntry(date=date(2024, 5, 1), waste_type="Restmülltonne"),
+        WasteCollectionEntry(date=date(2024, 5, 3), waste_type="Biotonne"),
+    )

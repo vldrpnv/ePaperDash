@@ -90,6 +90,12 @@ slot = "waste"
 # ${waste_address} is substituted from secrets.toml when --secrets is passed to the CLI.
 address = "${waste_address}"
 timezone = "Europe/Berlin"
+waste_types = [
+    "Biotonne 60–240 Liter",
+    "Restmülltonne 40-240 Liter",
+    "Papiertonne 4-wöchentlich",
+    "Wertstofftonne 80-1100 Liter",
+]
 [panels.renderer_config]
 font-family = "Arial, sans-serif"
 font-size = "16"
