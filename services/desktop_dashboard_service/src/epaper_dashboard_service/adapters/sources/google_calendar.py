@@ -63,6 +63,13 @@ class GoogleCalendarSourcePlugin(SourcePlugin):
         raw_ical = _fetch_ical(calendar_url)
         today = datetime.now(tz).date()
 
+        _LOGGER.info(
+            "GoogleCalendar parsing feed date=%s timezone=%s url=%r",
+            today,
+            timezone_name,
+            calendar_url,
+        )
+
         try:
             events = _parse_today_events(raw_ical, today, tz, max_events)
         except Exception as parse_error:
@@ -70,7 +77,7 @@ class GoogleCalendarSourcePlugin(SourcePlugin):
                 f"{self.name} source unavailable: failed to parse iCal data"
             ) from parse_error
 
-        _LOGGER.debug("GoogleCalendar events found count=%d date=%s", len(events), today)
+        _LOGGER.info("GoogleCalendar result events_today=%d date=%s", len(events), today)
         return GoogleCalendarEvents(events=tuple(events))
 
 
@@ -95,14 +102,23 @@ def _parse_today_events(
 
     cal = Calendar.from_ical(raw_ical)
     today_events: list[GoogleCalendarEvent] = []
+    total_vevents = 0
 
     for component in cal.walk():
         if component.name != "VEVENT":
             continue
 
+        total_vevents += 1
         event = _parse_vevent(component, today, tz)
         if event is not None:
             today_events.append(event)
+
+    _LOGGER.debug(
+        "GoogleCalendar iCal walk vevents_total=%d matched_today=%d date=%s",
+        total_vevents,
+        len(today_events),
+        today,
+    )
 
     # Sort: all-day first (start_time is None), then by start_time ascending.
     today_events.sort(key=lambda e: (e.start_time is not None, e.start_time or datetime.min.replace(tzinfo=timezone.utc)))
@@ -119,8 +135,10 @@ def _parse_vevent(component: Any, today: date, tz: ZoneInfo) -> GoogleCalendarEv
     dtstart = component.get("DTSTART")
     dtend = component.get("DTEND")
     summary = str(component.get("SUMMARY", "")).strip()
+    rrule = component.get("RRULE")
 
     if dtstart is None:
+        _LOGGER.debug("GoogleCalendar skip event=%r reason=no_dtstart", summary)
         return None
 
     start_dt = dtstart.dt
@@ -128,13 +146,24 @@ def _parse_vevent(component: Any, today: date, tz: ZoneInfo) -> GoogleCalendarEv
     # All-day event: dtstart.dt is a date, not a datetime.
     if isinstance(start_dt, date) and not isinstance(start_dt, datetime):
         end_dt = dtend.dt if dtend is not None else None
-        # All-day events span [start, end) — end is exclusive.
         if _allday_spans_today(start_dt, end_dt, today):
+            _LOGGER.debug("GoogleCalendar include all_day event=%r start=%s", summary, start_dt)
             return GoogleCalendarEvent(
                 title=summary,
                 start_time=None,
                 end_time=None,
                 all_day=True,
+            )
+        _LOGGER.debug(
+            "GoogleCalendar skip all_day event=%r start=%s end=%s today=%s",
+            summary, start_dt, end_dt, today,
+        )
+        if rrule:
+            _LOGGER.warning(
+                "GoogleCalendar event=%r has RRULE=%r but recurring expansion is not supported "
+                "— only the first occurrence (start=%s) is evaluated; "
+                "future instances of this recurring event will not appear",
+                summary, str(rrule.to_ical().decode()), start_dt,
             )
         return None
 
@@ -145,6 +174,17 @@ def _parse_vevent(component: Any, today: date, tz: ZoneInfo) -> GoogleCalendarEv
         start_dt = start_dt.astimezone(tz)
 
     if start_dt.date() != today:
+        _LOGGER.debug(
+            "GoogleCalendar skip timed event=%r start_local=%s today=%s",
+            summary, start_dt.date(), today,
+        )
+        if rrule:
+            _LOGGER.warning(
+                "GoogleCalendar event=%r has RRULE=%r but recurring expansion is not supported "
+                "— only the first occurrence (start_local=%s) is evaluated; "
+                "future instances of this recurring event will not appear",
+                summary, str(rrule.to_ical().decode()), start_dt.date(),
+            )
         return None
 
     end_dt_aware: datetime | None = None
@@ -155,6 +195,7 @@ def _parse_vevent(component: Any, today: date, tz: ZoneInfo) -> GoogleCalendarEv
         else:
             end_dt_aware = end_dt_aware.astimezone(tz)
 
+    _LOGGER.debug("GoogleCalendar include timed event=%r start_local=%s", summary, start_dt)
     return GoogleCalendarEvent(
         title=summary,
         start_time=start_dt,
