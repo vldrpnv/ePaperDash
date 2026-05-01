@@ -6,7 +6,7 @@ import logging
 import time
 from pathlib import Path
 
-from epaper_dashboard_service.application.config import load_configuration
+from epaper_dashboard_service.application.config import load_configuration, load_secrets
 from epaper_dashboard_service.bootstrap import build_application
 
 
@@ -22,6 +22,13 @@ def main() -> int:
         help="Override the check interval in seconds (default: value from config, or 300)",
     )
     parser.add_argument(
+        "--secrets",
+        type=Path,
+        default=None,
+        metavar="PATH",
+        help="Path to a secrets.toml file whose [secrets] values substitute ${key} placeholders in the config",
+    )
+    parser.add_argument(
         "-v", "--verbose",
         action="store_true",
         help="Enable DEBUG logging for all service components",
@@ -35,7 +42,11 @@ def main() -> int:
         datefmt="%H:%M:%S",
     )
 
-    configuration = load_configuration(args.config.resolve())
+    secrets: dict[str, str] | None = None
+    if args.secrets is not None:
+        secrets = load_secrets(args.secrets.resolve())
+
+    configuration = load_configuration(args.config.resolve(), secrets=secrets)
     interval_seconds = args.interval or configuration.service.interval_seconds
     application = build_application(configuration.mqtt)
 
