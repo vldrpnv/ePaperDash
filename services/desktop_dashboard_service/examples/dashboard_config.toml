@@ -73,6 +73,9 @@ slot = "gcal_events"
 calendar_url = "https://calendar.google.com/calendar/ical/ugdj639i7d6r9ugg7grgclmbdk%40group.calendar.google.com/private-cccf4c0f13fff5c325f229e1f490f8fb/basic.ics"
 timezone = "Europe/Berlin"
 max_events = 8
+# Optional title filters for hidden/private events:
+# blacklist_terms = ["Focus time", "School holiday"]
+# filter_word = "Private"
 [panels.renderer_config]
 font-family = "Arial, sans-serif"
 font-size = "16"

@@ -23,3 +23,4 @@ This directory captures the current specification and the design decisions for `
 - `dd-0008-mvg-fib-v2-departure-source.md` — MVG FIB v2 API as the departure source
 - `dd-0009-two-zone-grid-layout.md` — two-zone layout rationale (left rail + main content area)
 - `dd-0010-dashboard-layout-specification.md` — complete region map, typography scale, icon sizes, and train-row state grammar
+- `dd-0011-google-calendar-recurring-events-and-title-filters.md` — expand iCal recurrences and hide unwanted titles in the Google Calendar source
