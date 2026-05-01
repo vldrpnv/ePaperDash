@@ -44,7 +44,8 @@ have one authoritative reference for the visual contract.
 │                 │                                                                 │
 │  CLOCK          │ ─── SEPARATOR (y=212, x=192–794) ───────────────────────────  │
 │  (51,100,76,96) │                                                                 │
-│                 │  [TRAIN_ICON 192,214]  TRANSPORT (232,228,556,242)            │
+│                 │  GCAL (196,248,188,132) │ TRAINS (459,248,330,222)           │
+│                 │  WASTE (196,398,188,72) │                                     │
 │                 │                                                                 │
 │  MASCOT         │                                                                 │
 │  (10,350,130,130)│                                                               │
@@ -63,8 +64,11 @@ box, not the glyph baseline.
 | `MASCOT`        | `image_pool` img   |  10 | 350 | 130 | 130 | tertiary   |
 | `WEATHER`       | `weather_block` img| 188 |   6 | 606 | 200 | primary    |
 | `SEPARATOR`     | `<line>` element   | 192 | 212 | 602 |   1 | structural |
-| `TRAIN_ICON`    | `<path>` element   | 192 | 214 |  35 |  46 | structural |
-| `TRANSPORT`     | `trains` text      | 248 | 248 | 540 | 222 | primary    |
+| `GCAL`          | `gcal_events` text | 196 | 248 | 188 | 132 | secondary  |
+| `WASTE`         | `waste` text       | 196 | 398 | 188 |  72 | secondary  |
+| `COLUMN_RULE`   | `<line>` element   | 393 | 216 |   1 | 258 | structural |
+| `TRAIN_ICON`    | `<path>` element   | 395 | 232 |  35 |  46 | structural |
+| `TRANSPORT`     | `trains` text      | 459 | 248 | 330 | 222 | primary    |
 
 Notes:
 - The DATE text baseline is `y=32`; the region box starts at `y=0` to include ascenders.
@@ -73,7 +77,8 @@ Notes:
   `show_face=false` hides the outer ring; only hands and the validity indicator remain.
 - TRANSPORT bottom edge: `y=470`, leaving a 10 px margin from the canvas bottom.
 - TRANSPORT starts at `y=248`, giving a 36 px gap from the separator at `y=212`.
-- TRANSPORT text starts at `x=248`, which clears the train icon right edge (~235 px).
+- GCAL and WASTE share the lower-left column; the gap between them preserves readability.
+- TRANSPORT text starts at `x=459`, which clears the train icon right edge (~451 px).
 - The gutter between RAIL and MAIN is 5 px (x=183–187); it is intentionally empty.
 - No visible dividers separate regions within the rail; whitespace alone defines zones.
 
@@ -84,8 +89,8 @@ absolute (canvas-relative).
 
 | Column       | Left edge (x) | Nominal width | Right edge (x) |
 |--------------|--------------|---------------|----------------|
-| Departure time | 248        | 88 px         | 336            |
-| Destination  | 348          | 440 px        | 788            |
+| Departure time | 459        | 72 px         | 531            |
+| Destination  | 543          | 246 px        | 789            |
 
 ---
 
@@ -104,12 +109,15 @@ All sizes are nominal SVG/PIL pixel values at the 800×480 canvas resolution.
 | Weather — forecast block time     | WEATHER row 2 | 14        | 400    | normal  |
 | Weather — forecast block temp     | WEATHER row 2 | 18        | 700    | normal  |
 | Weather — tomorrow label          | WEATHER row 3 | 16        | 400    | normal  |
+| Google Calendar events            | GCAL          | 16        | 400    | normal  |
+| Waste collection                  | WASTE         | 16        | 400    | normal  |
+| Waste collection — tomorrow       | WASTE         | 20        | 700    | normal  |
 | Transport — station name          | TRANSPORT     | 26        | 700    | normal  |
 | Transport — time                  | TRANSPORT     | 20        | 400    | normal  |
 | Transport — destination           | TRANSPORT     | 20        | 400    | normal  |
 
-Sizing rule: the TRANSPORT slot declares `data-bbox-width="540"` and
-`data-bbox-height="238"`.  The auto-fit heuristic sizes the overall block first;
+Sizing rule: the TRANSPORT slot declares `data-bbox-width="330"` and
+`data-bbox-height="222"`.  The auto-fit heuristic sizes the overall block first;
 `departure-font-size` in `renderer_config` overrides the computed size (see DD-007).
 `station-name-font-size` sets the station header size independently via `StyledLine`.
 Line designations ("S1", "S3") are hidden by default (`show-line = false`).
