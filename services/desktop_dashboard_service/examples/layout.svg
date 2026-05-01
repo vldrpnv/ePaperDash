@@ -29,18 +29,27 @@
   <!-- Bold separator between weather and transport — clearly marks the zone boundary. -->
   <line x1="192" y1="212" x2="794" y2="212" stroke="#444" stroke-width="2" />
 
+  <!-- Vertical separator between Google Calendar events and train timetable. -->
+  <line x1="393" y1="216" x2="393" y2="474" stroke="#ccc" stroke-width="1" />
+
+  <!-- Google Calendar events: up to 8 today's events shown in a compact list.
+       Positioned left of the train timetable in the lower main area.
+       data-bbox-width/height drive auto font-size fitting. -->
+  <text id="gcal_events" x="196" y="248" font-family="Arial, sans-serif" fill="black"
+        data-bbox-width="188" data-bbox-height="222" />
+
   <!-- Train icon: Phosphor Icons "train" (MIT), viewBox 0 0 256 256.
        Transform: translate(184,212) scale(0.2) places the icon top-left at ≈(192,214),
        giving an ~35×46 px icon that aligns with the timetable text to its right. -->
-  <path transform="translate(184,232) scale(0.2)"
+  <path transform="translate(395,232) scale(0.2)"
         fill="black"
         d="M184 24H72a32 32 0 0 0-32 32v128a32 32 0 0 0 72 32h8l-14.4 19.2a8 8 0 1 0 12.8 9.6L100 216h56l21.6 28.8a8 8 0 1 0 12.8-9.6L176 216h8a32 32 0 0 0 32-32V56a32 32 0 0 0-32-32M56 120V80h64v40Zm80-40h64v40h-64ZM72 40h112a16 16 0 0 1 16 16v8H56v-8a16 16 0 0 1 16-16m112 160H72a16 16 0 0 1-16-16v-48h144v48a16 16 0 0 1-16 16m-88-28a12 12 0 1 1-12-12a12 12 0 0 1 12 12m88 0a12 12 0 1 1-12-12a12 12 0 0 1 12 12"/>
 
   <!-- Trains: timetable-style, time · destination columns.
-       x=248 leaves clear room for the train icon (right edge ≈235 px).
+       x=459 leaves clear room for the train icon (right edge ≈451 px).
        y=248 gives a 36 px gap below the separator at y=212.
        Tall bbox (222 px) comfortably holds all departure rows. -->
-  <text id="trains" x="248" y="248" font-family="Arial, sans-serif" fill="black"
-        data-bbox-width="540" data-bbox-height="222" />
+  <text id="trains" x="459" y="248" font-family="Arial, sans-serif" fill="black"
+        data-bbox-width="330" data-bbox-height="222" />
 
 </svg>

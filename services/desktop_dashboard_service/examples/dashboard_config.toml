@@ -64,6 +64,24 @@ show_face = "true"
 size_px = "154"
 
 [[panels]]
+source = "google_calendar"
+renderer = "google_calendar_text"
+slot = "gcal_events"
+[panels.source_config]
+# ${gcal_url} is substituted from secrets.toml when --secrets is passed to the CLI.
+# See secrets.toml.tmpl for the expected format.
+calendar_url = "${gcal_url}"
+timezone = "Europe/Berlin"
+max_events = 8
+# Optional title filters for hidden/private events:
+# blacklist_terms = ["Focus time", "School holiday"]
+# filter_word = "Private"
+[panels.renderer_config]
+font-family = "Arial, sans-serif"
+font-size = "16"
+fill = "black"
+
+[[panels]]
 source = "mvg_departures"
 renderer = "train_departures_text"
 slot = "trains"

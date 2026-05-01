@@ -1,5 +1,4 @@
 python3 -m venv .venv
 . .venv/bin/activate
 pip install -e .[dev]
-epaper-dashboard-service --config examples/dashboard_config.toml
-
+epaper-dashboard-service --config examples/dashboard_config.toml --secrets examples/secrets.toml

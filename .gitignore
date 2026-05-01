@@ -1,4 +1,5 @@
 secrets.h
 
+services/desktop_dashboard_service/examples/secrets.toml
 services/desktop_dashboard_service/examples/dashboard_preview.svg
 services/desktop_dashboard_service/examples/dashboard_preview.png
