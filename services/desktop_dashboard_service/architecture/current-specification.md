@@ -82,6 +82,16 @@ The built-in `weather_forecast` source returns a weather timeline contract with 
 
 The weather source supports `provider = open_meteo | met_no | openweather` and optional source-level precision coarsening through `source_config.precision_hours`.
 
+The built-in `ffb_waste_collection` source returns upcoming waste collection events for AWB Landkreis Fürstenfeldbruck addresses:
+
+- `address_label`
+- `reference_date`
+- `entries[]` where each entry contains:
+  - `date`
+  - `waste_type`
+
+The waste source resolves AWIDO address selectors for customer `ffb`, defaults to `city = "Eichenau"`, accepts `source_config.address` or `source_config.street` plus optional `source_config.house_number`, and supports optional `source_config.waste_type` or `source_config.waste_types` filtering.
+
 ### Renderer plugins
 
 A renderer plugin exposes a unique `name`, declares `supported_type`, and returns one or more `DashboardTextBlock` or `ImagePlacement` values from `render(data, panel)`.
@@ -118,6 +128,12 @@ Window start modes:
 - `start_at_next_minute`: if the render time has any sub-minute component, round up to the next whole minute; otherwise use the exact minute. Example: render at 21:26:49 → window 21:27–21:32.
 - `start_at_render_time`: use the exact render timestamp as the window start.
 
+The built-in `waste_collection_text` renderer accepts waste collection data and renders text lines for collections due within the next three calendar days relative to `reference_date`:
+
+- Each line includes the waste type.
+- The line for tomorrow is rendered in **bold** and with a larger font than the surrounding lines.
+- When there are no matching collections in the three-day window, the renderer shows an explicit no-collection line instead of leaving stale content.
+
 ### Layout contract
 
 - Panels target SVG elements by `slot` id.
@@ -142,6 +158,10 @@ Window start modes:
 - `mvg_departures` backed by the MVG BGW-PT v3 API (no registration required)
   - supports optional `source_config.timezone` (IANA timezone name) for normalizing departure times before rendering
   - defaults to `Europe/Berlin` when `timezone` is not set
+- `ffb_waste_collection` backed by the AWIDO customer `ffb` address/calendar endpoints
+  - defaults to `city = "Eichenau"` and `timezone = "Europe/Berlin"`
+  - accepts `address` or `street` + optional `house_number`
+  - supports optional `waste_type` or `waste_types` filtering
 
 ### Renderers
 
@@ -150,6 +170,7 @@ Window start modes:
 - `weather_text` (icon-based weather timeline, SVG text output)
 - `weather_block` (self-contained PIL image: today overview + 4-h blocks + tomorrow row)
 - `train_departures_text` — the station name header is a **bold** `RichLine`; each departure is rendered as a single timetable row (one `StyledLine`) containing the line label, departure time, and destination on the same line.  The line label is shown in **bold** for the first occurrence; subsequent departures sharing the same line label use space padding to keep the time column aligned.  On-time departures show the scheduled time without emphasis.  Delayed or early departures hide the scheduled time and show only the actual (realtime) time in **bold** — preventing two full HH:MM values from appearing side-by-side.  Cancelled departures show the scheduled time as strikethrough followed by "Cancelled" and the destination.  When `first-departure-font-size` is set in `renderer_config`, the first (next) departure row is rendered at that font size to give it visual emphasis over subsequent rows; if not set, `departure-font-size` applies to all rows.
+- `waste_collection_text` — renders upcoming AWB waste collection dates for the next three calendar days, includes the waste type on each line, and emphasizes tomorrow with **bold** larger text
 
 ## Output contract
 
@@ -170,6 +191,7 @@ Window start modes:
 - If a panel source raises `SourceUnavailableError`, the service still renders and encodes the dashboard with remaining panels.
 - Slots bound to unavailable sources are rendered as empty text (no visible stale block content).
 - Transient weather and MVG source fetch failures are mapped to `SourceUnavailableError`.
+- Transient AWIDO lookup or calendar fetch failures for `ffb_waste_collection` are mapped to `SourceUnavailableError`.
 - `mvg_departures` normalizes planned and realtime times to `Europe/Berlin` by default.
 - If `mvg_departures.source_config.timezone` is set to a valid IANA timezone, planned and realtime times are normalized to that timezone.
 - If MQTT publish fails transiently, the publisher retries according to `mqtt.publish_retry_attempts` and `mqtt.publish_retry_delay_seconds`.
@@ -192,3 +214,7 @@ Window start modes:
 - `analog_clock` `label_mode = "approx"` renders a `ca. HH:MM` label below the clock face.
 - `analog_clock` `label_mode = "none"` renders no label; image height equals `size_px`.
 - `clock` source returns a timezone-aware `ClockData.render_time` using the configured IANA timezone (default `"UTC"`).
+- `ffb_waste_collection` resolves AWIDO customer `ffb` addresses in Eichenau from `address` or `street` + `house_number`, returns upcoming waste collection entries, and filters them when `waste_type` or `waste_types` is configured.
+- `waste_collection_text` renders only entries due within the next three calendar days relative to the source `reference_date`.
+- A collection due tomorrow is rendered in **bold** and at a larger font size than non-tomorrow waste lines.
+- If no matching waste collections fall within the three-day window, `waste_collection_text` renders a no-collection line instead of leaving the slot empty.
