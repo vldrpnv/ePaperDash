@@ -53,10 +53,15 @@ def test_load_secrets_returns_string_values(tmp_path: Path) -> None:
     p = _write(tmp_path, "secrets.toml", """\
         [secrets]
         gcal_url = "https://example.com/cal.ics"
+        waste_address = "Ringstr. 12"
         mqtt_password = "s3cret"
         """)
     result = load_secrets(p)
-    assert result == {"gcal_url": "https://example.com/cal.ics", "mqtt_password": "s3cret"}
+    assert result == {
+        "gcal_url": "https://example.com/cal.ics",
+        "waste_address": "Ringstr. 12",
+        "mqtt_password": "s3cret",
+    }
 
 
 def test_load_secrets_empty_section(tmp_path: Path) -> None:
@@ -155,3 +160,18 @@ def test_load_configuration_substitutes_mqtt_password(tmp_path: Path) -> None:
         """)
     result = load_configuration(cfg, secrets={"mqtt_password": "s3cret"})
     assert result.mqtt.password == "s3cret"
+
+
+def test_example_dashboard_config_substitutes_secret_waste_address() -> None:
+    config_path = Path(__file__).resolve().parents[1] / "examples" / "dashboard_config.toml"
+
+    result = load_configuration(
+        config_path,
+        secrets={
+            "gcal_url": "https://example.com/calendar.ics",
+            "waste_address": "Ringstr. 12",
+        },
+    )
+
+    waste_panel = next(p for p in result.panels if p.slot == "waste")
+    assert waste_panel.source_config["address"] == "Ringstr. 12"
