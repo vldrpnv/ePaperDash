@@ -99,7 +99,7 @@ Provider-specific keys:
 
 ### Waste collection renderer configuration
 
-`renderer = "waste_collection_text"` renders waste pickups due within the next three days:
+`renderer = "waste_collection_text"` renders waste pickups due within a three-day window starting today:
 
 - each line includes the waste type
 - tomorrow's line is bold and larger than the surrounding lines

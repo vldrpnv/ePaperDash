@@ -128,7 +128,7 @@ Window start modes:
 - `start_at_next_minute`: if the render time has any sub-minute component, round up to the next whole minute; otherwise use the exact minute. Example: render at 21:26:49 → window 21:27–21:32.
 - `start_at_render_time`: use the exact render timestamp as the window start.
 
-The built-in `waste_collection_text` renderer accepts waste collection data and renders text lines for collections due within the next three calendar days relative to `reference_date`:
+The built-in `waste_collection_text` renderer accepts waste collection data and renders text lines for collections due within a three-day window starting at `reference_date` (today + the next two calendar days):
 
 - Each line includes the waste type.
 - The line for tomorrow is rendered in **bold** and with a larger font than the surrounding lines.
@@ -170,7 +170,7 @@ The built-in `waste_collection_text` renderer accepts waste collection data and 
 - `weather_text` (icon-based weather timeline, SVG text output)
 - `weather_block` (self-contained PIL image: today overview + 4-h blocks + tomorrow row)
 - `train_departures_text` — the station name header is a **bold** `RichLine`; each departure is rendered as a single timetable row (one `StyledLine`) containing the line label, departure time, and destination on the same line.  The line label is shown in **bold** for the first occurrence; subsequent departures sharing the same line label use space padding to keep the time column aligned.  On-time departures show the scheduled time without emphasis.  Delayed or early departures hide the scheduled time and show only the actual (realtime) time in **bold** — preventing two full HH:MM values from appearing side-by-side.  Cancelled departures show the scheduled time as strikethrough followed by "Cancelled" and the destination.  When `first-departure-font-size` is set in `renderer_config`, the first (next) departure row is rendered at that font size to give it visual emphasis over subsequent rows; if not set, `departure-font-size` applies to all rows.
-- `waste_collection_text` — renders upcoming AWB waste collection dates for the next three calendar days, includes the waste type on each line, and emphasizes tomorrow with **bold** larger text
+- `waste_collection_text` — renders upcoming AWB waste collection dates for a three-day window starting today, includes the waste type on each line, and emphasizes tomorrow with **bold** larger text
 
 ## Output contract
 
@@ -215,6 +215,6 @@ The built-in `waste_collection_text` renderer accepts waste collection data and 
 - `analog_clock` `label_mode = "none"` renders no label; image height equals `size_px`.
 - `clock` source returns a timezone-aware `ClockData.render_time` using the configured IANA timezone (default `"UTC"`).
 - `ffb_waste_collection` resolves AWIDO customer `ffb` addresses in Eichenau from `address` or `street` + `house_number`, returns upcoming waste collection entries, and filters them when `waste_type` or `waste_types` is configured.
-- `waste_collection_text` renders only entries due within the next three calendar days relative to the source `reference_date`.
+- `waste_collection_text` renders only entries due within a three-day window relative to the source `reference_date` (today plus the next two calendar days).
 - A collection due tomorrow is rendered in **bold** and at a larger font size than non-tomorrow waste lines.
 - If no matching waste collections fall within the three-day window, `waste_collection_text` renders a no-collection line instead of leaving the slot empty.

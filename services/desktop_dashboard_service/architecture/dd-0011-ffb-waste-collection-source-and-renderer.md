@@ -6,7 +6,7 @@ Accepted
 
 ## Context
 
-The dashboard needs a waste-collection panel for AWB Landkreis Fürstenfeldbruck addresses in Eichenau. The operator must be able to configure an address and optionally limit the panel to one or more waste types, while the rendered output should focus only on imminent pickups in the next three days.
+The dashboard needs a waste-collection panel for AWB Landkreis Fürstenfeldbruck addresses in Eichenau. The operator must be able to configure an address and optionally limit the panel to one or more waste types, while the rendered output should focus only on imminent pickups in a three-day window starting today.
 
 The existing service already supports pluggable sources and rich-text renderers. The new panel should reuse those extension points and avoid introducing a second rendering path.
 
@@ -22,7 +22,7 @@ The existing service already supports pluggable sources and rich-text renderers.
   - `entries[]` with `date` and `waste_type`
 - Support optional `waste_type` or `waste_types` filtering in the source configuration.
 - Add a built-in `waste_collection_text` renderer that:
-  - keeps only entries due within the next three calendar days,
+  - keeps only entries due within a three-day window starting at the source reference date,
   - includes the waste type on each line,
   - renders tomorrow’s line in bold with a larger font,
   - renders a no-collection message when the three-day window is empty.
