@@ -301,6 +301,15 @@ def _expand_occurrences(
     window_start: datetime,
     window_end: datetime,
 ) -> list[datetime]:
+    """Return all occurrences of the event within [window_start, window_end].
+
+    dateutil requires that RRULE UNTIL values are in UTC when DTSTART is
+    timezone-aware (RFC 5545).  Google Calendar's iCal export sometimes
+    violates this by writing UNTIL in local time without the trailing ``Z``.
+    To avoid the resulting ``ValueError`` we always expand in *naive* datetime
+    space — stripping the timezone from every date used for the rruleset — and
+    then re-attach the original timezone to the returned occurrences.
+    """
     try:
         from dateutil.rrule import rruleset, rrulestr
     except ImportError as exc:
@@ -308,21 +317,41 @@ def _expand_occurrences(
             "google_calendar source requires the 'python-dateutil' package"
         ) from exc
 
+    tz = start.tzinfo
+
+    # Strip timezone so that dateutil never sees a timezone-aware dtstart paired
+    # with a non-UTC UNTIL — the comparison is done entirely in local time.
+    naive_start = start.replace(tzinfo=None)
+    naive_ws = window_start.replace(tzinfo=None) if window_start.tzinfo else window_start
+    naive_we = window_end.replace(tzinfo=None) if window_end.tzinfo else window_end
+
     recurrence_set = rruleset()
-    recurrence_set.rdate(start)
+    recurrence_set.rdate(naive_start)
 
     for rrule in _component_values(component, "RRULE"):
-        recurrence_set.rrule(rrulestr(rrule.to_ical().decode(), dtstart=start))
+        recurrence_set.rrule(
+            rrulestr(rrule.to_ical().decode(), dtstart=naive_start, ignoretz=True)
+        )
 
     for rdate in _component_values(component, "RDATE"):
         for occurrence in _list_occurrence_values(rdate):
-            recurrence_set.rdate(_coerce_occurrence_datetime(occurrence, start))
+            recurrence_set.rdate(
+                _coerce_occurrence_datetime(occurrence, start).replace(tzinfo=None)
+            )
 
     for exdate in _component_values(component, "EXDATE"):
         for occurrence in _list_occurrence_values(exdate):
-            recurrence_set.exdate(_coerce_occurrence_datetime(occurrence, start))
+            recurrence_set.exdate(
+                _coerce_occurrence_datetime(occurrence, start).replace(tzinfo=None)
+            )
 
-    return list(recurrence_set.between(window_start, window_end, inc=True))
+    naive_occurrences = list(recurrence_set.between(naive_ws, naive_we, inc=True))
+
+    # Re-attach the original timezone so callers receive aware datetimes when
+    # the input start was aware.
+    if tz is not None:
+        return [occ.replace(tzinfo=tz) for occ in naive_occurrences]
+    return naive_occurrences
 
 
 def _component_values(component: Any, key: str) -> tuple[Any, ...]:
