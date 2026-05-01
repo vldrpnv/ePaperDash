@@ -1,6 +1,7 @@
 """Tests for the google_calendar source plugin."""
 from __future__ import annotations
 
+import logging
 from datetime import date, datetime, timezone
 from urllib.error import URLError
 from zoneinfo import ZoneInfo
@@ -10,6 +11,7 @@ import pytest
 from epaper_dashboard_service.adapters.sources.google_calendar import (
     GoogleCalendarSourcePlugin,
     _allday_spans_today,
+    _load_blacklist_terms,
     _parse_today_events,
 )
 from epaper_dashboard_service.domain.errors import SourceUnavailableError
@@ -256,12 +258,22 @@ class _FakePlugin(GoogleCalendarSourcePlugin):
         if self._error is not None:
             raise SourceUnavailableError("google_calendar source unavailable") from self._error
         timezone_name = str(config.get("timezone", "UTC"))
-        from epaper_dashboard_service.adapters.sources.google_calendar import _load_timezone, _parse_today_events
+        from epaper_dashboard_service.adapters.sources.google_calendar import (
+            _load_timezone,
+            _parse_today_events,
+        )
         tz = _load_timezone(timezone_name)
         from datetime import datetime
         today = datetime.now(tz).date()
         max_events = int(config.get("max_events", 8))
-        events = _parse_today_events(self._raw_ical, today, tz, max_events)  # type: ignore[arg-type]
+        blacklist_terms = _load_blacklist_terms(config)
+        events = _parse_today_events(
+            self._raw_ical,
+            today,
+            tz,
+            max_events,
+            blacklist_terms=blacklist_terms,
+        )  # type: ignore[arg-type]
         return GoogleCalendarEvents(events=tuple(events))
 
 
@@ -278,7 +290,7 @@ def test_google_calendar_source_returns_google_calendar_events_type() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Recurring events (RRULE) — limitation warning
+# Recurring events and title filtering
 # ---------------------------------------------------------------------------
 
 _ICAL_RECURRING_TIMED = b"""\
@@ -287,8 +299,8 @@ VERSION:2.0
 PRODID:-//Test//Test//EN
 BEGIN:VEVENT
 SUMMARY:Weekly standup
-DTSTART:20260101T090000Z
-DTEND:20260101T093000Z
+DTSTART:20260107T090000Z
+DTEND:20260107T093000Z
 RRULE:FREQ=WEEKLY;BYDAY=WE
 END:VEVENT
 END:VCALENDAR
@@ -300,40 +312,88 @@ VERSION:2.0
 PRODID:-//Test//Test//EN
 BEGIN:VEVENT
 SUMMARY:Monthly review
-DTSTART;VALUE=DATE:20260101
-DTEND;VALUE=DATE:20260102
-RRULE:FREQ=MONTHLY
+DTSTART;VALUE=DATE:20260107
+DTEND;VALUE=DATE:20260108
+RRULE:FREQ=WEEKLY;BYDAY=WE
+END:VEVENT
+END:VCALENDAR
+"""
+
+_ICAL_RECURRING_TIMED_EXDATE = b"""\
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Test//Test//EN
+BEGIN:VEVENT
+SUMMARY:Weekly standup
+DTSTART:20260107T090000Z
+DTEND:20260107T093000Z
+RRULE:FREQ=WEEKLY;BYDAY=WE
+EXDATE:20260429T090000Z
+END:VEVENT
+END:VCALENDAR
+"""
+
+_ICAL_FILTERED_EVENTS = b"""\
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Test//Test//EN
+BEGIN:VEVENT
+SUMMARY:Focus time
+DTSTART:20260429T080000Z
+DTEND:20260429T083000Z
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:Private appointment
+DTSTART:20260429T090000Z
+DTEND:20260429T093000Z
 END:VEVENT
 END:VCALENDAR
 """
 
 
-def test_recurring_timed_event_not_in_past_is_not_included() -> None:
-    """A recurring event whose first occurrence is not today is excluded (RRULE not expanded)."""
-    # _TODAY is 2026-04-29; DTSTART is 2026-01-01 — different day.
+def test_recurring_timed_event_occurring_today_is_included() -> None:
     events = _parse_today_events(_ICAL_RECURRING_TIMED, _TODAY, ZoneInfo("UTC"), max_events=8)
-    assert events == []
+    assert len(events) == 1
+    assert events[0].title == "Weekly standup"
+    assert events[0].all_day is False
+    assert events[0].start_time == datetime(2026, 4, 29, 9, 0, tzinfo=timezone.utc)
 
 
-def test_recurring_allday_event_not_spanning_today_is_not_included() -> None:
-    """A recurring all-day event whose first occurrence is not today is excluded."""
+def test_recurring_allday_event_occurring_today_is_included() -> None:
     events = _parse_today_events(_ICAL_RECURRING_ALLDAY, _TODAY, ZoneInfo("UTC"), max_events=8)
+    assert len(events) == 1
+    assert events[0].title == "Monthly review"
+    assert events[0].all_day is True
+
+
+def test_recurring_event_exdate_removes_matching_occurrence() -> None:
+    events = _parse_today_events(_ICAL_RECURRING_TIMED_EXDATE, _TODAY, ZoneInfo("UTC"), max_events=8)
     assert events == []
 
 
-def test_recurring_timed_event_emits_warning(caplog: pytest.LogCaptureFixture) -> None:
-    """A recurring event that is skipped due to date mismatch emits a WARNING about RRULE."""
-    import logging
-    with caplog.at_level(logging.WARNING, logger="epaper_dashboard_service.adapters.sources.google_calendar"):
-        _parse_today_events(_ICAL_RECURRING_TIMED, _TODAY, ZoneInfo("UTC"), max_events=8)
-    assert any("RRULE" in record.message for record in caplog.records)
-    assert any("Weekly standup" in record.message for record in caplog.records)
+def test_parse_today_events_filters_blacklisted_titles_case_insensitively() -> None:
+    events = _parse_today_events(
+        _ICAL_FILTERED_EVENTS,
+        _TODAY,
+        ZoneInfo("UTC"),
+        max_events=8,
+        blacklist_terms=("private",),
+    )
+    assert [event.title for event in events] == ["Focus time"]
 
 
-def test_recurring_allday_event_emits_warning(caplog: pytest.LogCaptureFixture) -> None:
-    """A recurring all-day event that is skipped due to date mismatch emits a WARNING about RRULE."""
-    import logging
-    with caplog.at_level(logging.WARNING, logger="epaper_dashboard_service.adapters.sources.google_calendar"):
-        _parse_today_events(_ICAL_RECURRING_ALLDAY, _TODAY, ZoneInfo("UTC"), max_events=8)
-    assert any("RRULE" in record.message for record in caplog.records)
-    assert any("Monthly review" in record.message for record in caplog.records)
+def test_google_calendar_source_filter_word_shorthand_filters_titles() -> None:
+    plugin = _FakePlugin(raw_ical=_ICAL_FILTERED_EVENTS)
+    result = plugin.fetch(
+        {
+            "calendar_url": "http://example.com/cal.ics",
+            "timezone": "UTC",
+            "filter_word": "PRIVATE",
+        }
+    )
+    assert [event.title for event in result.events] == ["Focus time"]
+
+
+def test_load_blacklist_terms_accepts_list_and_filter_word() -> None:
+    terms = _load_blacklist_terms({"blacklist_terms": ["Private", "Focus"], "filter_word": "School"})
+    assert terms == ("private", "focus", "school")
