@@ -17,7 +17,7 @@ Configuration keys
 ``days`` (optional, default ``3``)
     Number of local calendar days to fetch starting at "today".
 
-``max_events`` (optional, default ``24`` when ``days`` is omitted; otherwise ``max(16, days * 8)``)
+``max_events`` (optional, default ``max(16, days * 8)``; with the default ``days = 3`` this resolves to ``24``)
     Maximum number of events to return across the display window.
     Events are sorted by local event date, then by start time
     (all-day events appear before timed events that share the same date).

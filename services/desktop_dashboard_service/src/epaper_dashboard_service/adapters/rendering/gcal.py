@@ -237,14 +237,14 @@ def _allocate_proportionally(counts: tuple[int, ...], total_capacity: int) -> tu
         return counts
 
     quotas = [count * total_capacity / total for count in counts]
-    allocation = [min(count, int(quota)) for count, quota in zip(counts, quotas, strict=False)]
+    allocation = [min(count, int(quota)) for count, quota in zip(counts, quotas, strict=True)]
     remaining = total_capacity - sum(allocation)
 
     if remaining > 0:
         remainders = sorted(
             (
                 (quota - int(quota), index)
-                for index, (quota, count) in enumerate(zip(quotas, counts, strict=False))
+                for index, (quota, count) in enumerate(zip(quotas, counts, strict=True))
                 if allocation[index] < count
             ),
             reverse=True,

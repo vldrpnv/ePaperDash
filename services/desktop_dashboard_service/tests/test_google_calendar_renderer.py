@@ -1,7 +1,7 @@
 """Tests for the google_calendar_text renderer."""
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from epaper_dashboard_service.adapters.rendering.gcal import (
@@ -91,7 +91,7 @@ def test_build_day_sections_uses_configurable_day_count() -> None:
         display_days=4,
         events=(
             _allday_event("Today", reference_date),
-            _timed_event("Last day", reference_date.replace(day=7), 9),
+            _timed_event("Last day", reference_date + timedelta(days=3), 9),
         ),
     )
     sections = _build_day_sections(
