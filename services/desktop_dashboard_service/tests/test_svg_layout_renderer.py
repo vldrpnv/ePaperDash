@@ -217,9 +217,9 @@ def test_example_layout_separates_calendar_waste_and_trains_slots() -> None:
     root = ET.parse(template).getroot()
     bboxes = collect_slot_bboxes(root)
 
-    assert bboxes["gcal_events"] == (196.0, 248.0, 188.0, 132.0)
-    assert bboxes["waste"] == (196.0, 398.0, 188.0, 72.0)
-    assert bboxes["trains"] == (459.0, 248.0, 330.0, 222.0)
+    assert bboxes["gcal_events"] == (196.0, 248.0, 246.0, 132.0)
+    assert bboxes["waste"] == (196.0, 398.0, 246.0, 72.0)
+    assert bboxes["trains"] == (543.0, 248.0, 249.0, 222.0)
     assert check_slot_overlaps(bboxes) == []
 
 

@@ -48,13 +48,18 @@ def _render_entry(
 ) -> str | StyledLine:
     days_until = (entry.date - reference_date).days
     label = _format_date_label(entry.date)
-    text = f"{label} · {entry.waste_type}"
+    text = f"{label} · {_short_waste_type(entry.waste_type)}"
     if days_until <= 1:
         return StyledLine(
             spans=(TextSpan(text=text, bold=True),),
             font_size=_emphasis_font_size(panel),
         )
     return text
+
+
+def _short_waste_type(waste_type: str) -> str:
+    """Return only the first word, dropping size/frequency suffixes like '60–240 Liter'."""
+    return waste_type.split()[0] if waste_type.strip() else waste_type
 
 
 def _format_date_label(entry_date: date) -> str:

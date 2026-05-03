@@ -23,9 +23,14 @@ should stay compact enough to share the lower-left column with Google Calendar.
   and `entries[]` containing `date` and `waste_type`.
 - Support optional `waste_type` or `waste_types` filtering in the source
   configuration.
-- Add a built-in `waste_collection_text` renderer that keeps only entries due
-  within a short look-ahead window, emphasizes tomorrow with bold larger text,
-  and renders a no-collection message when the window is empty.
+- Add a built-in `waste_collection_text` renderer that shows the next N entries
+  (default 3, configurable via `max_entries`), emphasises today and tomorrow
+  with bold larger text, formats the date as `"Sa, 02. Mai"` (weekday abbreviation
+  + zero-padded day + German month abbreviation, no year), strips size/frequency
+  suffixes from the waste-type name (e.g. `"Biotonne 60–240 Liter"` → `"Biotonne"`),
+  and renders a no-collection message when no entries remain.
+- Calendar items returned by AWIDO for public holidays carry `fr: null`; the
+  source skips these entries rather than treating them as a fetch error.
 
 ## Consequences
 
@@ -33,6 +38,8 @@ should stay compact enough to share the lower-left column with Google Calendar.
   dashboard application flow or MQTT contract.
 - The implementation remains text-slot based and reuses the existing rich-text
   span and per-line font-size support.
-- The example layout now dedicates the lower-left column to a stacked calendar +
-  waste presentation, so the waste panel must stay compact and readable at that
-  width.
+- The example layout dedicates the lower-left column to a stacked calendar +
+  waste presentation; the waste panel stays compact by showing only the first
+  word of each waste-type name and limiting output to `max_entries` rows.
+- Public-holiday marker entries from AWIDO (null fraction list) are silently
+  skipped and never reach the renderer.

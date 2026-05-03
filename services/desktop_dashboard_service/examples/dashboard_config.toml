@@ -79,7 +79,7 @@ max_events = 5
 # filter_word = "Private"
 [panels.renderer_config]
 font-family = "Arial, sans-serif"
-font-size = "16"
+font-size = "19"
 fill = "black"
 
 [[panels]]
