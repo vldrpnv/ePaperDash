@@ -72,13 +72,34 @@ slot = "gcal_events"
 # See secrets.toml.tmpl for the expected format.
 calendar_url = "${gcal_url}"
 timezone = "Europe/Berlin"
-max_events = 8
+# Keep the calendar list short enough to leave readable space for waste below it.
+max_events = 5
 # Optional title filters for hidden/private events:
 # blacklist_terms = ["Focus time", "School holiday"]
 # filter_word = "Private"
 [panels.renderer_config]
 font-family = "Arial, sans-serif"
+font-size = "19"
+fill = "black"
+
+[[panels]]
+source = "ffb_waste_collection"
+renderer = "waste_collection_text"
+slot = "waste"
+[panels.source_config]
+# ${waste_address} is substituted from secrets.toml when --secrets is passed to the CLI.
+address = "${waste_address}"
+timezone = "Europe/Berlin"
+waste_types = [
+    "Biotonne 60–240 Liter",
+    "Restmülltonne 40-240 Liter",
+    "Papiertonne 4-wöchentlich",
+    "Wertstofftonne 80-1100 Liter",
+]
+[panels.renderer_config]
+font-family = "Arial, sans-serif"
 font-size = "16"
+tomorrow-font-size = "20"
 fill = "black"
 
 [[panels]]

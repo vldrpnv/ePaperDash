@@ -29,6 +29,8 @@ Before making changes, read:
   - Add or amend an ADR for architectural changes.
   - Add or amend a design decision record for implementation-level changes.
   - When a change affects repository-level behavior or integration contracts, update the relevant architecture directory in the same change.
+  - Records that contain concrete measured values (coordinates, font sizes, bounding boxes, API response field names) are **living specifications** and must be kept numerically accurate in the same change, regardless of whether the underlying design intent changed. Records that only document rationale need updating only when intent changes.
+  - After any change to layout coordinates, typography, or renderer output format, re-read the affected design-decision records and verify every stated value is still accurate before considering the change complete.
 
 ## Harness state
 
@@ -48,6 +50,7 @@ Before making changes, read:
 4. Capture or refine the specification before editing behavior.
 5. Prefer test-first changes; if not practical, document the missing seam and manual verification.
 6. Keep changes small and update the relevant decision records whenever design intent changes.
+7. After any change to layout coordinates, typography, or renderer output format, re-read the affected design-decision records and verify every stated value is still accurate.
 
 ## Repository-specific notes
 

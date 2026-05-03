@@ -11,10 +11,16 @@ Architecture notes, ADRs, and the current specification live in `architecture/`.
 - Plugin-based source and renderer registries
 - Initial source plugins:
   - calendar
+  - Google Calendar iCal feeds
   - weather forecast (Open-Meteo, MET Norway, OpenWeather)
+  - MVG departures
+  - Fürstenfeldbruck/Eichenau waste collection (AWIDO customer `ffb`)
 - Initial renderer plugins:
   - calendar_text
+  - google_calendar_text
   - weather_text (icon-based timeline with configurable precision)
+  - train_departures_text
+  - waste_collection_text
 - MQTT publisher compatible with the firmware topic payload
 
 ## Quick start
@@ -23,7 +29,7 @@ Architecture notes, ADRs, and the current specification live in `architecture/`.
 python3 -m venv .venv
 . .venv/bin/activate
 pip install -e .[dev]
-epaper-dashboard-service --config examples/dashboard_config.toml
+epaper-dashboard-service --config examples/dashboard_config.toml --secrets examples/secrets.toml
 ```
 
 Using `uv` works as well:
@@ -32,7 +38,7 @@ Using `uv` works as well:
 uv venv
 . .venv/bin/activate
 uv pip install -e '.[dev]'
-uv run epaper-dashboard-service --config examples/dashboard_config.toml
+uv run epaper-dashboard-service --config examples/dashboard_config.toml --secrets examples/secrets.toml
 ```
 
 ## Configuration
@@ -66,6 +72,27 @@ secret iCal URL) and supports:
 
 Recurring events are expanded from the iCal recurrence set, so `RRULE` / `RDATE`
 instances for the target day are included and `EXDATE` instances are omitted.
+
+### Fürstenfeldbruck waste collection source configuration
+
+`source = "ffb_waste_collection"` resolves an AWIDO address in customer `ffb`
+and returns upcoming waste collection events:
+
+- `address` (recommended) — free-form address such as `"Ringstr. 12"`
+- or `street` plus optional `house_number`
+- `city` (optional, default `Eichenau`)
+- `timezone` (optional, default `Europe/Berlin`)
+- `waste_type` or `waste_types` (optional) — filter to one or more fractions
+
+### Waste collection renderer configuration
+
+`renderer = "waste_collection_text"` renders waste pickups due within a short
+look-ahead window:
+
+- each line includes the waste type
+- tomorrow's line is bold and larger than the surrounding lines
+- `days` (optional, default `3`) adjusts the look-ahead window
+- `tomorrow-font-size` (optional) overrides the emphasized font size for tomorrow
 
 ### Weather source configuration
 
@@ -101,7 +128,7 @@ Provider-specific keys:
 
 The layout template is standard SVG. Two types of slots are supported:
 
-- **Text slots** (`<text id="...">`) — populated by text-based renderers (e.g. `calendar_text`, `weather_text`, `train_departures_text`).  Inline formatting (bold, strikethrough) is emitted as `<tspan>` children per `TextSpan`.  To auto-fit text to a bounding box, add `data-bbox-width` and `data-bbox-height` attributes to the `<text>` element; the renderer calculates an appropriate `font-size` automatically.  Per-renderer text attributes such as `font-size`, `font-family`, `font-weight`, `fill`, and `text-anchor` can be overridden via `renderer_config`.
+- **Text slots** (`<text id="...">`) — populated by text-based renderers (e.g. `calendar_text`, `google_calendar_text`, `train_departures_text`, `waste_collection_text`).  Inline formatting (bold, strikethrough) is emitted as `<tspan>` children per `TextSpan`.  To auto-fit text to a bounding box, add `data-bbox-width` and `data-bbox-height` attributes to the `<text>` element; the renderer calculates an appropriate `font-size` automatically.  Per-renderer text attributes such as `font-size`, `font-family`, `font-weight`, `fill`, and `text-anchor` can be overridden via `renderer_config`.
 - **Image slots** (`<image id="...">`) — populated by image-based renderers (e.g. `random_image`, `weather_block`) that return an `ImagePlacement`.  The renderer composites a PIL image into the position declared by the SVG `<image>` element's `x`, `y`, `width`, and `height` attributes.  The `<image>` placeholder is stripped from the SVG before rasterisation so it does not appear in the final bitmap.
 
 Static SVG content such as shapes, dividers, and decorative elements can remain in the template unchanged.

@@ -24,3 +24,4 @@ This directory captures the current specification and the design decisions for `
 - `dd-0009-two-zone-grid-layout.md` — two-zone layout rationale (left rail + main content area)
 - `dd-0010-dashboard-layout-specification.md` — complete region map, typography scale, icon sizes, and train-row state grammar
 - `dd-0011-google-calendar-recurring-events-and-title-filters.md` — expand iCal recurrences and hide unwanted titles in the Google Calendar source
+- `dd-0012-ffb-waste-collection-source-and-renderer.md` — AWIDO-backed waste collection source and compact three-day renderer

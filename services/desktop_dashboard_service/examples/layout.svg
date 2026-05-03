@@ -29,27 +29,32 @@
   <!-- Bold separator between weather and transport — clearly marks the zone boundary. -->
   <line x1="192" y1="212" x2="794" y2="212" stroke="#444" stroke-width="2" />
 
-  <!-- Vertical separator between Google Calendar events and train timetable. -->
-  <line x1="393" y1="216" x2="393" y2="474" stroke="#ccc" stroke-width="1" />
+  <!-- Vertical separator between Google Calendar/waste column and train timetable.
+       x=450 gives gcal/waste 246 px and trains 350 px — matches actual content widths. -->
+  <line x1="450" y1="216" x2="450" y2="478" stroke="#ccc" stroke-width="1" />
 
-  <!-- Google Calendar events: up to 8 today's events shown in a compact list.
-       Positioned left of the train timetable in the lower main area.
+  <!-- Google Calendar events: upper portion of the lower-left column.
+       Keep this list short enough to leave room for the waste panel beneath it.
        data-bbox-width/height drive auto font-size fitting. -->
   <text id="gcal_events" x="196" y="248" font-family="Arial, sans-serif" fill="black"
-        data-bbox-width="188" data-bbox-height="222" />
+        data-bbox-width="246" data-bbox-height="132" />
+
+  <!-- Waste collection: follow-up panel beneath Google Calendar.
+       3 next entries; today and tomorrow rendered bold at a larger font. -->
+  <text id="waste" x="196" y="398" font-family="Arial, sans-serif" fill="black"
+        data-bbox-width="246" data-bbox-height="72" />
 
   <!-- Train icon: Phosphor Icons "train" (MIT), viewBox 0 0 256 256.
-       Transform: translate(184,212) scale(0.2) places the icon top-left at ≈(192,214),
-       giving an ~35×46 px icon that aligns with the timetable text to its right. -->
-  <path transform="translate(395,232) scale(0.2)"
+       translate(452,232) scale(0.2) → icon top-left ≈(452,232), right edge ≈503 px. -->
+  <path transform="translate(452,232) scale(0.2)"
         fill="black"
         d="M184 24H72a32 32 0 0 0-32 32v128a32 32 0 0 0 72 32h8l-14.4 19.2a8 8 0 1 0 12.8 9.6L100 216h56l21.6 28.8a8 8 0 1 0 12.8-9.6L176 216h8a32 32 0 0 0 32-32V56a32 32 0 0 0-32-32M56 120V80h64v40Zm80-40h64v40h-64ZM72 40h112a16 16 0 0 1 16 16v8H56v-8a16 16 0 0 1 16-16m112 160H72a16 16 0 0 1-16-16v-48h144v48a16 16 0 0 1-16 16m-88-28a12 12 0 1 1-12-12a12 12 0 0 1 12 12m88 0a12 12 0 1 1-12-12a12 12 0 0 1 12 12"/>
 
   <!-- Trains: timetable-style, time · destination columns.
-       x=459 leaves clear room for the train icon (right edge ≈451 px).
+       x=543 leaves ~40 px after the train icon right edge (≈503 px).
        y=248 gives a 36 px gap below the separator at y=212.
-       Tall bbox (222 px) comfortably holds all departure rows. -->
-  <text id="trains" x="459" y="248" font-family="Arial, sans-serif" fill="black"
-        data-bbox-width="330" data-bbox-height="222" />
+       bbox-width=249 fills the column to an 8 px right margin. -->
+  <text id="trains" x="543" y="248" font-family="Arial, sans-serif" fill="black"
+        data-bbox-width="249" data-bbox-height="222" />
 
 </svg>
