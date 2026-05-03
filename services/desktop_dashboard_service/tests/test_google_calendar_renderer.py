@@ -1,7 +1,7 @@
 """Tests for the google_calendar_text renderer."""
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
 from epaper_dashboard_service.adapters.rendering.gcal import (
@@ -43,10 +43,10 @@ def _timed_event(
         event_date.year,
         event_date.month,
         event_date.day,
-        0,
-        0,
+        hour,
+        minute,
         tzinfo=ZoneInfo("Europe/Berlin"),
-    ) + timedelta(hours=hour, minutes=minute)
+    )
     return GoogleCalendarEvent(
         title=title,
         event_date=event_date,
@@ -112,11 +112,11 @@ def test_build_day_sections_uses_configurable_day_count() -> None:
 
 def test_build_day_sections_marks_hidden_events_for_overflow_indicator() -> None:
     reference_date = date(2026, 5, 4)
-    day_1 = tuple(_timed_event(f"D1-{index}", reference_date, 8 + index) for index in range(5))
+    day_1 = tuple(_timed_event(f"D1-{index}", reference_date, 8 + index, index) for index in range(5))
     day_2_date = date(2026, 5, 5)
-    day_2 = tuple(_timed_event(f"D2-{index}", day_2_date, 8 + index) for index in range(10))
+    day_2 = tuple(_timed_event(f"D2-{index}", day_2_date, 8 + (index % 10), index) for index in range(10))
     day_3_date = date(2026, 5, 6)
-    day_3 = tuple(_timed_event(f"D3-{index}", day_3_date, 8 + index) for index in range(20))
+    day_3 = tuple(_timed_event(f"D3-{index}", day_3_date, 8 + (index % 10), index) for index in range(20))
     data = GoogleCalendarEvents(
         reference_date=reference_date,
         display_days=3,

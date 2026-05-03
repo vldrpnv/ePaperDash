@@ -14,10 +14,10 @@ Configuration keys
     IANA timezone name used to normalise event times and to determine which
     events fall on the configured display window starting at "today".
 
-    ``days`` (optional, default ``3``)
-        Number of local calendar days to fetch starting at "today".
+``days`` (optional, default ``3``)
+    Number of local calendar days to fetch starting at "today".
 
-    ``max_events`` (optional, default ``max(16, days * 8)``)
+``max_events`` (optional, default ``24`` when ``days`` is omitted; otherwise ``max(16, days * 8)``)
     Maximum number of events to return across the display window.
     Events are sorted by local event date, then by start time
     (all-day events appear before timed events that share the same date).
