@@ -16,6 +16,7 @@ _DEFAULT_DISPLAY_DAYS = 3
 _DEFAULT_SOFT_DAY_LIMIT = 5
 _DEFAULT_TOTAL_CAPACITY = 16
 _DEFAULT_COLUMN_GAP = 12
+_WEEKDAY_ABBR = ("Mo", "Di", "Mi", "Do", "Fr", "Sa", "So")
 
 # Bundled fonts live under ``adapters/fonts/`` alongside the weather/clock
 # renderers.  If they are unavailable at runtime, ``_load_font`` falls back to
@@ -102,6 +103,14 @@ class ProportionalEventAllocationStrategy:
         return tuple(allocation)
 
 
+@dataclass(frozen=True)
+class _EventDisplayRow:
+    """A single rendered line in the flowing event list."""
+    day: date
+    day_first: bool   # first event of this day across the whole list
+    event_text: str   # formatted event text, possibly with overflow marker
+
+
 class GoogleCalendarTextRenderer(RendererPlugin):
     """Render Google Calendar events as a single rebalanced multi-column image."""
 
@@ -131,7 +140,6 @@ class GoogleCalendarTextRenderer(RendererPlugin):
         soft_day_limit = int(cfg.get("soft-day-limit", _DEFAULT_SOFT_DAY_LIMIT))
         day_count = _resolve_day_count(data, cfg)
         font_size = int(cfg.get("font-size", 14))
-        header_font_size = int(cfg.get("header-font-size", font_size + 2))
         column_gap = int(cfg.get("column-gap", _DEFAULT_COLUMN_GAP))
         font_path = Path(str(cfg.get("font_path"))) if cfg.get("font_path") else self._font_path
         bold_font_path = Path(str(cfg.get("bold_font_path"))) if cfg.get("bold_font_path") else self._bold_font_path
@@ -146,10 +154,13 @@ class GoogleCalendarTextRenderer(RendererPlugin):
 
         canvas = Image.new("L", (width, height), color=255)
         draw = ImageDraw.Draw(canvas)
-        font = _load_font(font_path, font_size)
-        header_font = _load_font(bold_font_path, header_font_size)
-
-        _draw_sections(draw, width, height, sections, font=font, header_font=header_font, column_gap=column_gap)
+        _draw_sections(
+            draw, width, height, sections,
+            font_path=font_path,
+            bold_font_path=bold_font_path,
+            max_font_size=font_size,
+            column_gap=column_gap,
+        )
         return (ImagePlacement(image=canvas, x=x, y=y),)
 
 
@@ -189,46 +200,104 @@ def _build_day_sections(
     return tuple(sections)
 
 
+def _sections_to_display_rows(sections: tuple[CalendarDaySection, ...]) -> list[_EventDisplayRow]:
+    """Flatten day sections into a single chronological list of display rows.
+
+    Rules:
+    - Sections with no visible events and no hidden events are skipped.
+    - ``day_first=True`` marks the first event of each calendar day.
+    - When a section has hidden entries the last visible event's text receives
+      an overflow marker (``…`` appended via ``_append_overflow_marker``).
+    - When a section has hidden entries but zero visible events a standalone
+      ``"..."`` row is emitted instead.
+    """
+    rows: list[_EventDisplayRow] = []
+    for section in sections:
+        n = len(section.visible_events)
+        if n == 0 and section.hidden_count == 0:
+            continue
+        for i, event in enumerate(section.visible_events):
+            text = _format_event(event)
+            if i == n - 1 and section.hidden_count > 0:
+                text = _append_overflow_marker(text)
+            rows.append(_EventDisplayRow(day=section.day, day_first=(i == 0), event_text=text))
+        if n == 0 and section.hidden_count > 0:
+            rows.append(_EventDisplayRow(day=section.day, day_first=True, event_text="..."))
+    return rows
+
+
+def _day_boundary_split(rows: list["_EventDisplayRow"]) -> int:
+    """Return the index at which to start the right column.
+
+    Picks the day-boundary closest to the midpoint so no single day is
+    split across columns.  Returns ``len(rows)`` when there is only one
+    day (everything in the left column).
+    """
+    n = len(rows)
+    boundaries = [i for i in range(1, n) if rows[i].day_first]
+    if not boundaries:
+        return n
+    mid = n / 2
+    return min(boundaries, key=lambda i: abs(i - mid))
+
+
 def _draw_sections(
     draw: ImageDraw.ImageDraw,
     width: int,
     height: int,
     sections: tuple[CalendarDaySection, ...],
     *,
-    font: ImageFont.FreeTypeFont | ImageFont.ImageFont,
-    header_font: ImageFont.FreeTypeFont | ImageFont.ImageFont,
+    font_path: Path,
+    bold_font_path: Path,
+    max_font_size: int,
     column_gap: int,
 ) -> None:
-    if not sections:
+    """Render all events as a flowing two-column chronological list.
+
+    Font size is auto-calculated so that all rows fit within *height*,
+    capped at *max_font_size*.  Each row carries an abbreviated weekday
+    label (bold) on the first event of a day or when starting a new column.
+    """
+    rows = _sections_to_display_rows(sections)
+    if not rows:
+        font = _load_font(font_path, max_font_size)
+        draw.text((0, 0), "No events", fill=0, font=font)
         return
 
-    column_count = len(sections)
-    inner_gap = column_gap * max(column_count - 1, 0)
-    column_width = max(40, (width - inner_gap) // column_count)
-    header_height = _line_height(draw, header_font)
-    line_height = _line_height(draw, font)
-    header_y = 0
-    line_y = header_height + 8
+    n_cols = 2
+    split = _day_boundary_split(rows)
+    # Tallest column determines font size so all rows fit.
+    tallest = max(split, len(rows) - split) if split < len(rows) else len(rows)
+    auto_font_size = max(8, int(height / (tallest * 1.3)))
+    actual_font_size = min(max_font_size, auto_font_size)
+    font = _load_font(font_path, actual_font_size)
+    bold_font = _load_font(bold_font_path, actual_font_size)
+    line_h = _line_height(draw, font)
 
-    for index, section in enumerate(sections):
-        x = index * (column_width + column_gap)
-        draw.text((x, header_y), _truncate_text(draw, section.label, column_width, header_font), fill=0, font=header_font)
-        y = line_y
+    # Reserve a fixed prefix width for the 2-char weekday label ("Mo ").
+    day_prefix_w = int(draw.textlength("Mo ", font=bold_font)) + 2
+    col_width = (width - column_gap * (n_cols - 1)) // n_cols
+    event_width = max(40, col_width - day_prefix_w)
 
-        lines = [_format_event(event) for event in section.visible_events]
-        if section.hidden_count > 0:
-            if lines:
-                lines[-1] = _append_overflow_marker(lines[-1])
-            else:
-                lines = ["..."]
-        elif not lines:
-            lines = ["No events"]
-
-        available_height = max(height - y, line_height)
-        max_lines = max(1, available_height // line_height)
-        for line in lines[:max_lines]:
-            draw.text((x, y), _truncate_text(draw, line, column_width, font), fill=0, font=font)
-            y += line_height
+    for i, row in enumerate(rows):
+        col = 0 if i < split else 1
+        row_in_col = i if col == 0 else i - split
+        col_x = col * (col_width + column_gap)
+        y = row_in_col * line_h
+        # Show day label only on the first event of each day.
+        if row.day_first:
+            draw.text(
+                (col_x, y),
+                _WEEKDAY_ABBR[row.day.weekday()],
+                fill=0,
+                font=bold_font,
+            )
+        draw.text(
+            (col_x + day_prefix_w, y),
+            _truncate_text(draw, row.event_text, event_width, font),
+            fill=0,
+            font=font,
+        )
 
 
 def _allocate_proportionally(counts: tuple[int, ...], total_capacity: int) -> tuple[int, ...]:

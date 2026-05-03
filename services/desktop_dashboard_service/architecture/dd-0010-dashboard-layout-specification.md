@@ -109,12 +109,19 @@ All sizes are nominal SVG/PIL pixel values at the 800×480 canvas resolution.
 | Weather — forecast block time     | WEATHER row 2 | 14        | 400    | normal  |
 | Weather — forecast block temp     | WEATHER row 2 | 18        | 700    | normal  |
 | Weather — tomorrow label          | WEATHER row 3 | 16        | 400    | normal  |
-| Google Calendar events            | GCAL          | 14        | 400    | normal  |
+| Google Calendar — day label       | GCAL          | auto¹     | 700    | normal  |
+| Google Calendar — event text      | GCAL          | auto¹     | 400    | normal  |
 | Waste collection — body           | WASTE         | 13        | 400    | normal  |
 | Waste collection — today/tomorrow | WASTE         | 15        | 700    | normal  |
 | Transport — station name          | TRANSPORT     | 20        | 700    | normal  |
 | Transport — time                  | TRANSPORT     | 16        | 400    | normal  |
 | Transport — destination           | TRANSPORT     | 16        | 400    | normal  |
+
+¹ GCAL font is auto-sized to fit all visible events in the image height.
+`font-size` in `renderer_config` (default 14) acts as an upper bound; the
+renderer shrinks it so that `ceil(n_events / 2)` rows fit within the slot
+height using the formula `min(font-size, floor(height / (rows_per_col × 1.3)))`.
+Day labels use the bold variant of the same auto-sized font.
 
 Sizing rule: the TRANSPORT slot declares `data-bbox-width="548"` and
 `data-bbox-height="130"`.  The auto-fit heuristic sizes the overall block first;

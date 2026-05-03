@@ -8,6 +8,7 @@ from epaper_dashboard_service.adapters.rendering.gcal import (
     GoogleCalendarTextRenderer,
     ProportionalEventAllocationStrategy,
     _build_day_sections,
+    _sections_to_display_rows,
 )
 from epaper_dashboard_service.domain.models import (
     GoogleCalendarEvent,
@@ -163,6 +164,110 @@ def test_renderer_image_is_not_blank() -> None:
     result = renderer.render(data, _panel())
     pixels = list(result[0].image.getdata())
     assert any(pixel < 200 for pixel in pixels)
+
+
+def test_sections_to_display_rows_marks_day_first_and_appends_overflow_marker() -> None:
+    """_sections_to_display_rows emits one row per visible event, sets day_first
+    on the opening event of each day, and appends '...' to the last visible
+    event when the allocator hid some entries."""
+    reference_date = date(2026, 5, 4)  # Monday
+    tuesday = reference_date + timedelta(days=1)
+    monday_events = tuple(
+        _timed_event(f"Mo-{i}", reference_date, 9 + i) for i in range(3)
+    )
+    tuesday_events = tuple(
+        _timed_event(f"Tu-{i}", tuesday, 10 + i) for i in range(2)
+    )
+    data = GoogleCalendarEvents(
+        reference_date=reference_date,
+        display_days=2,
+        events=monday_events + tuesday_events,
+    )
+    # Inject hidden_count=2 on Monday by capping capacity at 3 total
+    sections = _build_day_sections(
+        data,
+        day_count=2,
+        total_capacity=3,
+        soft_day_limit=10,
+        allocation_strategy=ProportionalEventAllocationStrategy(),
+    )
+
+    rows = _sections_to_display_rows(sections)
+
+    # Proportional allocation: Monday 3/5 × 3 = 1.8 → 2, Tuesday 2/5 × 3 = 1.2 → 1
+    # Monday has 2 visible + 1 hidden; Tuesday has 1 visible + 1 hidden
+    assert len(rows) == 3
+    assert rows[0].day_first is True
+    assert rows[0].day == reference_date
+    assert "..." not in rows[0].event_text  # first Monday event, not the last
+    assert rows[1].day_first is False
+    assert rows[1].day == reference_date
+    assert "..." in rows[1].event_text   # last visible Monday event carries overflow marker
+    assert rows[2].day_first is True
+    assert rows[2].day == tuesday
+
+
+def test_renderer_shows_overflow_indicator_when_total_exceeds_capacity() -> None:
+    """When total events exceed max-total-events the allocator truncates and the
+    last visible event for the overflowing day gets '...' appended in the image."""
+    renderer = GoogleCalendarTextRenderer()
+    reference_date = date(2026, 5, 4)
+    # 9+2+3=14 events, capacity=8 forces truncation
+    sunday_events = tuple(
+        _timed_event(f"Sun-{i}", reference_date, 8 + (i % 10)) for i in range(9)
+    )
+    monday_events = tuple(
+        _timed_event(f"Mon-{i}", reference_date + timedelta(days=1), 9 + i) for i in range(2)
+    )
+    tuesday_events = tuple(
+        _timed_event(f"Tue-{i}", reference_date + timedelta(days=2), 10 + i) for i in range(3)
+    )
+    data = GoogleCalendarEvents(
+        reference_date=reference_date,
+        display_days=3,
+        events=sunday_events + monday_events + tuesday_events,
+    )
+
+    result = renderer.render(
+        data,
+        _panel(**{"font-size": "14", "max-total-events": "8", "soft-day-limit": "5"}),
+    )
+
+    pixels = list(result[0].image.getdata())
+    assert any(pixel < 200 for pixel in pixels)
+
+
+def test_renderer_shows_all_events_when_total_fits_capacity() -> None:
+    """9+2+3=14 events with max-total-events=16: all 14 must appear (no draw clipping)."""
+    renderer = GoogleCalendarTextRenderer()
+    reference_date = date(2026, 5, 4)
+    sunday_events = tuple(
+        _timed_event(f"Sun-{i}", reference_date, 8 + (i % 10)) for i in range(9)
+    )
+    monday_events = tuple(
+        _timed_event(f"Mon-{i}", reference_date + timedelta(days=1), 9 + i) for i in range(2)
+    )
+    tuesday_events = tuple(
+        _timed_event(f"Tue-{i}", reference_date + timedelta(days=2), 10 + i) for i in range(3)
+    )
+    data = GoogleCalendarEvents(
+        reference_date=reference_date,
+        display_days=3,
+        events=sunday_events + monday_events + tuesday_events,
+    )
+    sections = _build_day_sections(
+        data,
+        day_count=3,
+        total_capacity=16,
+        soft_day_limit=5,
+        allocation_strategy=ProportionalEventAllocationStrategy(),
+    )
+
+    rows = _sections_to_display_rows(sections)
+
+    # Allocator grants all 14 (14 ≤ 16); no hidden_count; no overflow markers
+    assert len(rows) == 14
+    assert all("..." not in row.event_text for row in rows)
 
 
 def test_renderer_supported_type_is_google_calendar_events() -> None:
