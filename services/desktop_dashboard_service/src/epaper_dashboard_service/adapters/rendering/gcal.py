@@ -1,7 +1,7 @@
 """Renderer for Google Calendar events."""
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import date, timedelta
 
 from epaper_dashboard_service.domain.models import (
     DashboardTextBlock,
@@ -60,7 +60,7 @@ def _format_event(event: GoogleCalendarEvent) -> str:
     return f"{event.start_time.strftime('%H:%M')} {event.title}"
 
 
-def _format_day_label(event_day, day_offset: int) -> str:
+def _format_day_label(event_day: date, day_offset: int) -> str:
     suffix = ""
     if day_offset == 0:
         suffix = ", today"

@@ -230,7 +230,7 @@ uniform size; position in the list communicates priority.
 
 1. No visible dividing lines within the left rail.  Vertical whitespace between
    DATE, CLOCK, WASTE, and MASCOT is sufficient.
-2. One separator line at `y=212` (stroke ≈ 1–2 px, `#444`) marks the boundary
+2. One separator line at `y=182` (stroke ≈ 1–2 px, `#444`) marks the boundary
    between WEATHER and TRANSPORT.  It is the only structural line on the canvas.
 3. Priority is communicated by size and position, not labels or borders.
    The WEATHER block and the NEXT departure are the two largest type elements;
