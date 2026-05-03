@@ -45,7 +45,7 @@ have one authoritative reference for the visual contract.
 │  CLOCK          │ ─── SEPARATOR (y=182, x=192–794) ───────────────────────────  │
 │  (14,100,154,174)│                                                                │
 │                 │  GCAL BLOCK (196,198,596,124)                                 │
-│  WASTE          │  TRAINS (244,340,548,130)                                     │
+│  WASTE          │  TRAINS (244,340,280,130) │ TRELLO (542,340,250,130)         │
 │  (8,304,168,60) │                                                                 │
 │                 │                                                                 │
 │  MASCOT         │                                                                 │
@@ -68,7 +68,9 @@ box, not the glyph baseline.
 | `SEPARATOR`     | `<line>` element   | 192 | 182 | 602 |   1 | structural |
 | `GCAL`          | `gcal_events`      | 196 | 198 | 596 | 124 | secondary  |
 | `TRAIN_ICON`    | `<path>` element   | 196 | 334 |  44 |  54 | structural |
-| `TRANSPORT`     | `trains` text      | 244 | 340 | 548 | 130 | primary    |
+| `TRANSPORT`     | `trains` text      | 244 | 340 | 280 | 130 | primary    |
+| `TRELLO_DIVIDER`| `<line>` element   | 534 | 334 |   1 | 142 | structural |
+| `TRELLO`        | `trello` text      | 542 | 340 | 250 | 130 | secondary  |
 
 Notes:
 - The DATE text baseline is `y=32`; the region box starts at `y=0` to include ascenders.
@@ -76,9 +78,11 @@ Notes:
   `ca. HH:MM` label while freeing the lower rail for waste collection.
 - WASTE moves into the rail so the main area can devote one flexible block to
   the multi-day calendar renderer.
-- TRANSPORT bottom edge remains `y=470`, leaving a 10 px margin from the canvas bottom.
-- TRANSPORT starts at `y=340`, below the calendar block.
+- TRANSPORT bottom edge is `y=470`, leaving a 10 px margin from the canvas bottom.
+- TRANSPORT starts at `y=340`, below the calendar block; it shares the lower row with TRELLO.
 - TRAIN_ICON top-left is at `(196, 334)`; TRANSPORT text starts at `x=244`.
+- A vertical divider at `x=534` (y=334–476) separates TRANSPORT from TRELLO.
+- TRELLO starts at `x=542`, right edge `x=792`, matching the right edge of all other main-area elements.
 - The gutter between RAIL and MAIN is 5 px (x=183–187); it is intentionally empty.
 - No visible dividers separate regions within the rail; whitespace alone defines zones.
 
@@ -90,7 +94,7 @@ absolute (canvas-relative).
 | Column           | Left edge (x) | Nominal width | Right edge (x) |
 |------------------|--------------|---------------|----------------|
 | Departure time   | 244          | 72 px         | 316            |
-| Destination      | 328          | 464 px        | 792            |
+| Destination      | 328          | 196 px        | 524            |
 
 ---
 
@@ -116,14 +120,20 @@ All sizes are nominal SVG/PIL pixel values at the 800×480 canvas resolution.
 | Transport — station name          | TRANSPORT     | 20        | 700    | normal  |
 | Transport — time                  | TRANSPORT     | 16        | 400    | normal  |
 | Transport — destination           | TRANSPORT     | 16        | 400    | normal  |
+| Trello — list header              | TRELLO        | auto²     | 700    | normal  |
+| Trello — card name                | TRELLO        | auto²     | 400    | normal  |
 
 ¹ GCAL font is auto-sized to fit all visible events in the image height.
+
+² TRELLO font is auto-sized via `data-bbox-width="250"` and `data-bbox-height="130"`.
+`font-size` in `renderer_config` (default 14) sets the nominal size; the SVG renderer
+reduces it automatically when content overflows the bounding box.
 `font-size` in `renderer_config` (default 14) acts as an upper bound; the
 renderer shrinks it so that `ceil(n_events / 2)` rows fit within the slot
 height using the formula `min(font-size, floor(height / (rows_per_col × 1.3)))`.
 Day labels use the bold variant of the same auto-sized font.
 
-Sizing rule: the TRANSPORT slot declares `data-bbox-width="548"` and
+Sizing rule: the TRANSPORT slot declares `data-bbox-width="280"` and
 `data-bbox-height="130"`.  The auto-fit heuristic sizes the overall block first;
 `departure-font-size` in `renderer_config` overrides the computed size (see DD-007).
 `station-name-font-size` sets the station header size independently via `StyledLine`.
@@ -234,8 +244,10 @@ uniform size; position in the list communicates priority.
 
 1. No visible dividing lines within the left rail.  Vertical whitespace between
    DATE, CLOCK, WASTE, and MASCOT is sufficient.
-2. One separator line at `y=182` (stroke ≈ 1–2 px, `#444`) marks the boundary
-   between WEATHER and TRANSPORT.  It is the only structural line on the canvas.
+2. One horizontal separator line at `y=182` (stroke ≈ 1–2 px, `#444`) marks the
+   boundary between WEATHER and the lower information zone.  One vertical separator
+   line at `x=534` (stroke 1 px, `#444`, y=334–476) divides TRANSPORT from TRELLO.
+   These are the only structural lines on the canvas.
 3. Priority is communicated by size and position, not labels or borders.
    The WEATHER block and the NEXT departure are the two largest type elements;
    everything else is smaller.
@@ -256,4 +268,5 @@ uniform size; position in the list communicates priority.
 | DD-009  | Introduced the two-zone grid and the rationale for removing the old free-positioned layout.  This record supersedes DD-009's typography and state notes and adds the complete reference tables. |
 | DD-007  | Defines `TextSpan`, `RichLine`, `StyledLine`, and `data-bbox-*` auto-sizing — the mechanisms used to implement the delayed and cancelled states above. |
 | DD-008  | Defines the MVG FIB v2 departure source that populates TRANSPORT. |
+| (Trello source) | The `trello_cards` source and `trello_cards_text` renderer populate TRELLO.  Credentials (`api_key`, `token`) are supplied via `secrets.toml` placeholders. |
 | ADR-0003 | SVG template as the layout format; the region IDs above are the SVG element `id` values used by that contract. |

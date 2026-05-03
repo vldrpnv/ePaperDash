@@ -145,6 +145,18 @@ class WasteCollectionSchedule:
 
 
 @dataclass(frozen=True)
+class TrelloCard:
+    name: str
+    list_name: str
+
+
+@dataclass(frozen=True)
+class TrelloCards:
+    board_name: str
+    cards: tuple[TrelloCard, ...]
+
+
+@dataclass(frozen=True)
 class PanelDefinition:
     source: str
     renderer: str

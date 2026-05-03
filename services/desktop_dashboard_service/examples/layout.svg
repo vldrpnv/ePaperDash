@@ -44,8 +44,15 @@
         fill="black"
         d="M184 24H72a32 32 0 0 0-32 32v128a32 32 0 0 0 72 32h8l-14.4 19.2a8 8 0 1 0 12.8 9.6L100 216h56l21.6 28.8a8 8 0 1 0 12.8-9.6L176 216h8a32 32 0 0 0 32-32V56a32 32 0 0 0-32-32M56 120V80h64v40Zm80-40h64v40h-64ZM72 40h112a16 16 0 0 1 16 16v8H56v-8a16 16 0 0 1 16-16m112 160H72a16 16 0 0 1-16-16v-48h144v48a16 16 0 0 1-16 16m-88-28a12 12 0 1 1-12-12a12 12 0 0 1 12 12m88 0a12 12 0 1 1-12-12a12 12 0 0 1 12 12"/>
 
-  <!-- Trains: full-width timetable beneath the calendar block. -->
+  <!-- Trains: left portion of the lower timetable row (narrowed to share with Trello). -->
   <text id="trains" x="244" y="340" font-family="Arial, sans-serif" fill="black"
-        data-bbox-width="548" data-bbox-height="130" />
+        data-bbox-width="280" data-bbox-height="130" />
+
+  <!-- Vertical divider between trains and Trello. -->
+  <line x1="534" y1="334" x2="534" y2="476" stroke="#444" stroke-width="1" />
+
+  <!-- Trello board: lower-right corner, lists cards grouped by column. -->
+  <text id="trello" x="542" y="340" font-family="Arial, sans-serif" fill="black"
+        data-bbox-width="250" data-bbox-height="130" />
 
 </svg>
