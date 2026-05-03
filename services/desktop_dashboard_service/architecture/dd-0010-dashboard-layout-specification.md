@@ -40,15 +40,17 @@ have one authoritative reference for the visual contract.
 │  RAIL (0–182)   │  MAIN (188–800)                                               │
 │                 │                                                                 │
 │  DATE           │  WEATHER                                                       │
-│  (8,0,168,68)   │  (188,6,606,200)                                              │
+│  (8,0,168,68)   │  (188,6,606,168)                                              │
 │                 │                                                                 │
-│  CLOCK          │ ─── SEPARATOR (y=212, x=192–794) ───────────────────────────  │
-│  (51,100,76,96) │                                                                 │
-│                 │  GCAL (196,248,246,132) │ TRAINS (543,248,249,222)           │
-│                 │  WASTE (196,398,246,72) │                                     │
+│  CLOCK          │ ─── SEPARATOR (y=182, x=192–794) ───────────────────────────  │
+│  (14,100,154,174)│                                                                │
+│                 │  GCAL0 (196,198,188,124) GCAL1 (400,198,188,124)             │
+│                 │  GCAL2 (604,198,188,124)                                      │
+│  WASTE          │  TRAINS (244,340,548,130)                                     │
+│  (8,304,168,60) │                                                                 │
 │                 │                                                                 │
 │  MASCOT         │                                                                 │
-│  (10,350,130,130)│                                                               │
+│  (28,374,120,106)│                                                               │
 └──────────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -60,27 +62,26 @@ box, not the glyph baseline.
 | Region ID       | Slot / element     | x   | y   | w   | h   | Priority   |
 |-----------------|--------------------|-----|-----|-----|-----|------------|
 | `DATE`          | `calendar` text    |   8 |   0 | 168 |  68 | secondary  |
-| `CLOCK`         | `analog_clock` img |   7 | 110 | 168 | 190 | tertiary   |
-| `MASCOT`        | `image_pool` img   |  10 | 350 | 130 | 130 | tertiary   |
-| `WEATHER`       | `weather_block` img| 188 |   6 | 606 | 200 | primary    |
-| `SEPARATOR`     | `<line>` element   | 192 | 212 | 602 |   1 | structural |
-| `GCAL`          | `gcal_events` text | 196 | 248 | 246 | 132 | secondary  |
-| `WASTE`         | `waste` text       | 196 | 398 | 246 |  72 | secondary  |
-| `COLUMN_RULE`   | `<line>` element   | 450 | 216 |   1 | 262 | structural |
-| `TRAIN_ICON`    | `<path>` element   | 452 | 232 |  35 |  46 | structural |
-| `TRANSPORT`     | `trains` text      | 543 | 248 | 249 | 222 | primary    |
+| `CLOCK`         | `analog_clock` img |  14 | 100 | 154 | 174 | tertiary   |
+| `WASTE`         | `waste` text       |   8 | 304 | 168 |  60 | secondary  |
+| `MASCOT`        | `image_pool` img   |  28 | 374 | 120 | 106 | tertiary   |
+| `WEATHER`       | `weather_block` img| 188 |   6 | 606 | 168 | primary    |
+| `SEPARATOR`     | `<line>` element   | 192 | 182 | 602 |   1 | structural |
+| `GCAL_0`        | `gcal_events_0`    | 196 | 198 | 188 | 124 | secondary  |
+| `GCAL_1`        | `gcal_events_1`    | 400 | 198 | 188 | 124 | secondary  |
+| `GCAL_2`        | `gcal_events_2`    | 604 | 198 | 188 | 124 | secondary  |
+| `TRAIN_ICON`    | `<path>` element   | 196 | 334 |  44 |  54 | structural |
+| `TRANSPORT`     | `trains` text      | 244 | 340 | 548 | 130 | primary    |
 
 Notes:
 - The DATE text baseline is `y=32`; the region box starts at `y=0` to include ascenders.
-- CLOCK is `size_px=154` = 85 % of the 182 px rail.  The PIL canvas is wider than
-  the face (~168 px) to fit the `ca. HH:MM` label; `x=7` centers it in the rail.
-  `show_face=false` hides the outer ring; only hands and the validity indicator remain.
-- TRANSPORT bottom edge: `y=470`, leaving a 10 px margin from the canvas bottom.
-- TRANSPORT starts at `y=248`, giving a 36 px gap from the separator at `y=212`.
-- GCAL and WASTE share the lower-left column; the gap between them preserves readability.
-- COLUMN_RULE is at `x=450`, giving GCAL/WASTE 246 px and TRANSPORT 249 px.
-- TRAIN_ICON top-left is at `(452, 232)`; right edge ≈ 503 px.  TRANSPORT text
-  starts at `x=543`, leaving a ~40 px indent from the icon.
+- CLOCK is `size_px=140`; the 154×174 image slot leaves enough room for the
+  `ca. HH:MM` label while freeing the lower rail for waste collection.
+- WASTE moves into the rail so the main area can devote one column to each
+  displayed calendar day.
+- TRANSPORT bottom edge remains `y=470`, leaving a 10 px margin from the canvas bottom.
+- TRANSPORT starts at `y=340`, below the three-column calendar strip.
+- TRAIN_ICON top-left is at `(196, 334)`; TRANSPORT text starts at `x=244`.
 - The gutter between RAIL and MAIN is 5 px (x=183–187); it is intentionally empty.
 - No visible dividers separate regions within the rail; whitespace alone defines zones.
 
@@ -91,8 +92,8 @@ absolute (canvas-relative).
 
 | Column           | Left edge (x) | Nominal width | Right edge (x) |
 |------------------|--------------|---------------|----------------|
-| Departure time   | 543          | 72 px         | 615            |
-| Destination      | 627          | 165 px        | 792            |
+| Departure time   | 244          | 72 px         | 316            |
+| Destination      | 328          | 464 px        | 792            |
 
 ---
 
@@ -111,15 +112,15 @@ All sizes are nominal SVG/PIL pixel values at the 800×480 canvas resolution.
 | Weather — forecast block time     | WEATHER row 2 | 14        | 400    | normal  |
 | Weather — forecast block temp     | WEATHER row 2 | 18        | 700    | normal  |
 | Weather — tomorrow label          | WEATHER row 3 | 16        | 400    | normal  |
-| Google Calendar events            | GCAL          | 19        | 400    | normal  |
-| Waste collection — body           | WASTE         | 16        | 400    | normal  |
-| Waste collection — today/tomorrow | WASTE         | 20        | 700    | normal  |
-| Transport — station name          | TRANSPORT     | 26        | 700    | normal  |
-| Transport — time                  | TRANSPORT     | 20        | 400    | normal  |
-| Transport — destination           | TRANSPORT     | 20        | 400    | normal  |
+| Google Calendar events            | GCAL_*        | 14        | 400    | normal  |
+| Waste collection — body           | WASTE         | 13        | 400    | normal  |
+| Waste collection — today/tomorrow | WASTE         | 15        | 700    | normal  |
+| Transport — station name          | TRANSPORT     | 20        | 700    | normal  |
+| Transport — time                  | TRANSPORT     | 16        | 400    | normal  |
+| Transport — destination           | TRANSPORT     | 16        | 400    | normal  |
 
-Sizing rule: the TRANSPORT slot declares `data-bbox-width="249"` and
-`data-bbox-height="222"`.  The auto-fit heuristic sizes the overall block first;
+Sizing rule: the TRANSPORT slot declares `data-bbox-width="548"` and
+`data-bbox-height="130"`.  The auto-fit heuristic sizes the overall block first;
 `departure-font-size` in `renderer_config` overrides the computed size (see DD-007).
 `station-name-font-size` sets the station header size independently via `StyledLine`.
 Line designations ("S1", "S3") are hidden by default (`show-line = false`).
@@ -228,7 +229,7 @@ uniform size; position in the list communicates priority.
 ## Whitespace and visual hierarchy rules
 
 1. No visible dividing lines within the left rail.  Vertical whitespace between
-   DATE, CLOCK, and MASCOT is sufficient.
+   DATE, CLOCK, WASTE, and MASCOT is sufficient.
 2. One separator line at `y=212` (stroke ≈ 1–2 px, `#444`) marks the boundary
    between WEATHER and TRANSPORT.  It is the only structural line on the canvas.
 3. Priority is communicated by size and position, not labels or borders.
@@ -236,7 +237,9 @@ uniform size; position in the list communicates priority.
    everything else is smaller.
 4. No debug-style full timestamps appear on the canvas in normal operation.
    The CLOCK `ca. HH:MM` label communicates freshness; no `last_update` slot exists.
-5. The MASCOT is intentionally small and low (bottom-left corner) so it reads as a
+5. The calendar strip is split into three equal-width day columns so up to five
+   events per displayed day remain readable without shrinking the entire lower zone.
+6. The MASCOT is intentionally small and low (bottom-left corner) so it reads as a
    personality accent, not a focal element.
 
 ---

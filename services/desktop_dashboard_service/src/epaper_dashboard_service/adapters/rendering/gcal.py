@@ -1,16 +1,7 @@
-"""Renderer for Google Calendar events.
-
-Produces a compact ``DashboardTextBlock`` containing up to ``max_events``
-lines for today's events.  Each line follows one of two formats:
-
-- All-day event: ``"• Event title"``
-- Timed event:   ``"HH:MM Event title"``  (uses the start time only)
-
-The slot is the SVG element identified by ``panel.slot``.  Standard text
-attributes (``font-size``, ``font-family``, ``fill``) are forwarded from
-``renderer_config`` to the target ``<text>`` element.
-"""
+"""Renderer for Google Calendar events."""
 from __future__ import annotations
+
+from datetime import timedelta
 
 from epaper_dashboard_service.domain.models import (
     DashboardTextBlock,
@@ -22,10 +13,12 @@ from epaper_dashboard_service.domain.ports import RendererPlugin
 
 
 _ALL_DAY_BULLET = "•"
+_DISPLAY_DAYS = 3
+_MAX_EVENTS_PER_DAY = 5
 
 
 class GoogleCalendarTextRenderer(RendererPlugin):
-    """Render today's Google Calendar events as plain text lines."""
+    """Render today and the next two days into three dedicated text slots."""
 
     name = "google_calendar_text"
     supported_type = GoogleCalendarEvents
@@ -33,23 +26,47 @@ class GoogleCalendarTextRenderer(RendererPlugin):
     def render(
         self, data: GoogleCalendarEvents, panel: PanelDefinition
     ) -> tuple[DashboardTextBlock, ...]:
-        lines: list[str] = [_format_event(e) for e in data.events]
-        if not lines:
-            lines = ["No events"]
+        max_events_per_day = int(panel.renderer_config.get("max-events-per-day", _MAX_EVENTS_PER_DAY))
+        attributes = _text_attributes(panel)
+        blocks: list[DashboardTextBlock] = []
 
-        return (
-            DashboardTextBlock(
-                slot=panel.slot,
-                lines=tuple(lines),
-                attributes=_text_attributes(panel),
-            ),
-        )
+        for day_offset in range(_DISPLAY_DAYS):
+            event_day = data.reference_date + timedelta(days=day_offset)
+            lines = [_format_day_label(event_day, day_offset)]
+            day_events = [
+                event
+                for event in data.events
+                if event.event_date == event_day
+            ][:max_events_per_day]
+            if day_events:
+                lines.extend(_format_event(event) for event in day_events)
+            else:
+                lines.append("No events")
+
+            blocks.append(
+                DashboardTextBlock(
+                    slot=f"{panel.slot}_{day_offset}",
+                    lines=tuple(lines),
+                    attributes=attributes,
+                )
+            )
+
+        return tuple(blocks)
 
 
 def _format_event(event: GoogleCalendarEvent) -> str:
     if event.all_day or event.start_time is None:
         return f"{_ALL_DAY_BULLET} {event.title}"
     return f"{event.start_time.strftime('%H:%M')} {event.title}"
+
+
+def _format_day_label(event_day, day_offset: int) -> str:
+    suffix = ""
+    if day_offset == 0:
+        suffix = ", today"
+    elif day_offset == 1:
+        suffix = ", tomorrow"
+    return f"{event_day.strftime('%A')}{suffix}"
 
 
 def _text_attributes(panel: PanelDefinition) -> dict[str, str]:

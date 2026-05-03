@@ -12,6 +12,7 @@ from epaper_dashboard_service.adapters.sources.google_calendar import (
     _allday_spans_today,
     _load_blacklist_terms,
     _parse_today_events,
+    _parse_window_events,
 )
 from epaper_dashboard_service.domain.errors import SourceUnavailableError
 from epaper_dashboard_service.domain.models import GoogleCalendarEvent, GoogleCalendarEvents
@@ -124,6 +125,28 @@ END:VEVENT
 END:VCALENDAR
 """
 
+_ICAL_THREE_DAY_WINDOW = b"""\
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Test//Test//EN
+BEGIN:VEVENT
+SUMMARY:Today event
+DTSTART:20260429T090000Z
+DTEND:20260429T100000Z
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:Tomorrow event
+DTSTART:20260430T090000Z
+DTEND:20260430T100000Z
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:Day after event
+DTSTART:20260501T090000Z
+DTEND:20260501T100000Z
+END:VEVENT
+END:VCALENDAR
+"""
+
 
 # ---------------------------------------------------------------------------
 # _allday_spans_today helper
@@ -158,6 +181,7 @@ def test_parse_today_events_all_day() -> None:
     assert len(events) == 1
     e = events[0]
     assert e.title == "Team standup"
+    assert e.event_date == _TODAY
     assert e.all_day is True
     assert e.start_time is None
     assert e.end_time is None
@@ -168,6 +192,7 @@ def test_parse_today_events_timed_utc() -> None:
     assert len(events) == 1
     e = events[0]
     assert e.title == "Morning call"
+    assert e.event_date == _TODAY
     assert e.all_day is False
     assert e.start_time is not None
     assert e.start_time.hour == 9
@@ -187,6 +212,7 @@ def test_parse_today_events_multi_day_all_day_included() -> None:
     events = _parse_today_events(_ICAL_MULTI_DAY_ALLDAY, _TODAY, ZoneInfo("UTC"), max_events=8)
     assert len(events) == 1
     assert events[0].title == "Conference"
+    assert events[0].event_date == _TODAY
     assert events[0].all_day is True
 
 
@@ -221,6 +247,21 @@ END:VCALENDAR
     assert len(events) == 2
     assert events[0].all_day is True
     assert events[1].all_day is False
+
+
+def test_parse_window_events_includes_today_and_next_two_days() -> None:
+    events = _parse_window_events(
+        _ICAL_THREE_DAY_WINDOW,
+        _TODAY,
+        ZoneInfo("UTC"),
+        max_events=8,
+        days=3,
+    )
+    assert [(event.title, event.event_date) for event in events] == [
+        ("Today event", date(2026, 4, 29)),
+        ("Tomorrow event", date(2026, 4, 30)),
+        ("Day after event", date(2026, 5, 1)),
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -273,7 +314,7 @@ class _FakePlugin(GoogleCalendarSourcePlugin):
             max_events,
             blacklist_terms=blacklist_terms,
         )  # type: ignore[arg-type]
-        return GoogleCalendarEvents(events=tuple(events))
+        return GoogleCalendarEvents(reference_date=today, events=tuple(events))
 
 
 def test_google_calendar_source_maps_url_error_to_unavailable() -> None:
