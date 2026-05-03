@@ -129,3 +129,23 @@ slot = "image_pool"
 [panels.source_config]
 directory = "./image_samples"
 [panels.renderer_config]
+
+# ---------------------------------------------------------------------------
+# Trello board — uncomment and fill in board_id (and add a matching SVG slot)
+# ---------------------------------------------------------------------------
+[[panels]]
+source = "trello_cards"
+renderer = "trello_cards_text"
+slot = "trello"
+[panels.source_config]
+# ${trello_api_key} and ${trello_token} are substituted from secrets.toml
+api_key  = "${trello_api_key}"
+token    = "${trello_token}"
+board_id = "qUD5teDv"
+# # Optional: limit to specific column names (case-insensitive)
+list_names = ["Diese Woche", "In Arbeit"]
+max_cards = 10
+[panels.renderer_config]
+font-size   = "14"
+font-family = "Arial, sans-serif"
+fill        = "black"

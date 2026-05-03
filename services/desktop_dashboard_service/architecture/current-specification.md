@@ -164,6 +164,12 @@ The built-in `waste_collection_text` renderer accepts waste collection data and 
   - defaults to `city = "Eichenau"` and `timezone = "Europe/Berlin"`
   - accepts `address` or `street` + optional `house_number`
   - supports optional `waste_type` or `waste_types` filtering
+- `trello_cards` backed by the Trello REST API (read-only token scope required)
+  - requires `source_config.api_key` and `source_config.token`; supply via `secrets.toml` placeholders
+  - requires `source_config.board_id`
+  - supports optional `source_config.list_names` (list of column names, case-insensitive substring match) to restrict which lists are shown
+  - supports optional `source_config.max_cards` (default 20)
+  - maps HTTP, network, and JSON errors to `SourceUnavailableError`
 
 ### Renderers
 
@@ -174,6 +180,7 @@ The built-in `waste_collection_text` renderer accepts waste collection data and 
 - `weather_block` (self-contained PIL image: today overview + 4-h blocks + tomorrow row)
 - `train_departures_text` — the station name header is a **bold** `RichLine`; each departure is rendered as a single timetable row (one `StyledLine`) containing the line label, departure time, and destination on the same line.  The line label is shown in **bold** for the first occurrence; subsequent departures sharing the same line label use space padding to keep the time column aligned.  On-time departures show the scheduled time without emphasis.  Delayed or early departures hide the scheduled time and show only the actual (realtime) time in **bold** — preventing two full HH:MM values from appearing side-by-side.  Cancelled departures show the scheduled time as strikethrough followed by "Cancelled" and the destination.  When `first-departure-font-size` is set in `renderer_config`, the first (next) departure row is rendered at that font size to give it visual emphasis over subsequent rows; if not set, `departure-font-size` applies to all rows.
 - `waste_collection_text` — renders upcoming AWB waste collection dates for a short look-ahead window, includes the waste type on each line, and emphasizes tomorrow with **bold** larger text
+- `trello_cards_text` — renders open Trello cards grouped under bold list-name headers; each card is prefixed with `•`; renders `"No cards"` when the board returns no matching cards
 
 ## Output contract
 
@@ -207,7 +214,7 @@ The built-in `waste_collection_text` renderer accepts waste collection data and 
 - `train_departures_text` renders each departure as a single timetable row: line label (bold on first occurrence of each line, space-padded on subsequent same-line rows), one displayed time, destination — all on one line.
 - On-time departures display the scheduled time. Delayed or early departures hide the scheduled time and display only the actual time in **bold**. Cancelled departures display the scheduled time as strikethrough.
 - When `first-departure-font-size` is set, the first departure row is rendered at that font size for visual emphasis; subsequent rows use `departure-font-size`.
-- The layout slot bounding boxes in `layout.svg` must not overlap; the two-zone layout separates the left context rail (x 0–182) from the main content area (x 188–800), with the weather block in the main area top section (height 168 px), one Google Calendar block beneath it, waste collection in the lower rail, and the transport timetable spanning the full lower-main width.
+- The layout slot bounding boxes in `layout.svg` must not overlap; the two-zone layout separates the left context rail (x 0–182) from the main content area (x 188–800), with the weather block in the main area top section (height 168 px), one Google Calendar block beneath it, waste collection in the lower rail, the transport timetable in the lower-main left portion (x 244–524, width 280 px), and the Trello board panel in the lower-main right portion (x 542–792, width 250 px) separated by a vertical divider at x=534.
 - `analog_clock` renders an outer circle, optional tick marks, and an optional hour hand, with no minute hand and no second hand.
 - `analog_clock` `sector_style = "outer_arc"` (default) renders a highlighted thick arc along the clock rim spanning the validity window.
 - `analog_clock` `sector_style = "end_hand"` renders a single long hand pointing to the end of the validity window instead of an arc.
@@ -232,3 +239,8 @@ The built-in `waste_collection_text` renderer accepts waste collection data and 
 - `waste_collection_text` renders only entries due within the configured look-ahead window relative to the source `reference_date`.
 - A collection due tomorrow is rendered in **bold** and at a larger font size than non-tomorrow waste lines.
 - If no matching waste collections fall within the configured look-ahead window, `waste_collection_text` renders a no-collection line instead of leaving the slot empty.
+- `trello_cards` fetches open cards from the configured board and filters to the configured list names when `list_names` is set; when `list_names` is absent all open lists are included.
+- `trello_cards` raises `ValueError` (fast-fail) when `api_key`, `token`, or `board_id` is absent.
+- `trello_cards` maps HTTP, network, and JSON errors to `SourceUnavailableError`.
+- `trello_cards_text` renders cards grouped under their list name (bold header), each card prefixed with `•`.
+- `trello_cards_text` renders `"No cards"` when the source returns an empty card set.
