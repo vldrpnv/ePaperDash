@@ -39,15 +39,16 @@ have one authoritative reference for the visual contract.
 ┌──────────────────────────────────────────────────────────────────────────────────┐
 │  RAIL (0–182)   │  MAIN (188–800)                                               │
 │                 │                                                                 │
-│  DATE           │  WEATHER                                                       │
-│  (8,0,168,68)   │  (188,6,606,168)                                              │
+│  DATE           │  WEATHER (compact strip)                                       │
+│  (8,0,168,68)   │  (188,6,604,72)                                               │
 │                 │                                                                 │
-│  CLOCK          │ ─── SEPARATOR (y=182, x=192–794) ───────────────────────────  │
+│  CLOCK          │ ─── SEPARATOR (y=82, x=192–794) ────────────────────────────  │
 │  (14,100,154,174)│                                                                │
-│                 │  GCAL BLOCK (196,198,596,124)                                 │
-│  WASTE          │  TRAINS (244,340,280,130) │ TRELLO (542,340,250,130)         │
-│  (8,304,168,60) │                                                                 │
+│                 │  TRELLO (524,86,264,110)                                       │
 │                 │                                                                 │
+│  WASTE          │  GCAL BLOCK (196,198,596,124)                                 │
+│  (8,304,168,60) │                                                                 │
+│                 │  TRAINS (244,340,548,130)                                      │
 │  MASCOT         │                                                                 │
 │  (28,374,120,106)│                                                               │
 └──────────────────────────────────────────────────────────────────────────────────┘
@@ -64,27 +65,32 @@ box, not the glyph baseline.
 | `CLOCK`         | `analog_clock` img |  14 | 100 | 154 | 174 | tertiary   |
 | `WASTE`         | `waste` text       |   8 | 304 | 168 |  60 | secondary  |
 | `MASCOT`        | `image_pool` img   |  28 | 374 | 120 | 106 | tertiary   |
-| `WEATHER`       | `weather_block` img| 188 |   6 | 606 | 168 | primary    |
-| `SEPARATOR`     | `<line>` element   | 192 | 182 | 602 |   1 | structural |
+| `WEATHER`       | `weather_block` img| 188 |   6 | 604 |  72 | primary    |
+| `SEPARATOR`     | `<line>` element   | 192 |  82 | 602 |   1 | structural |
+| `TRELLO`        | `trello` text      | 524 |  86 | 264 | 110 | secondary  |
 | `GCAL`          | `gcal_events`      | 196 | 198 | 596 | 124 | secondary  |
 | `TRAIN_ICON`    | `<path>` element   | 196 | 334 |  44 |  54 | structural |
-| `TRANSPORT`     | `trains` text      | 244 | 340 | 280 | 130 | primary    |
-| `TRELLO_DIVIDER`| `<line>` element   | 534 | 334 |   1 | 142 | structural |
-| `TRELLO`        | `trello` text      | 542 | 340 | 250 | 130 | secondary  |
+| `TRANSPORT`     | `trains` text      | 244 | 340 | 548 | 130 | primary    |
 
 Notes:
 - The DATE text baseline is `y=32`; the region box starts at `y=0` to include ascenders.
 - CLOCK is `size_px=140`; the 154×174 image slot leaves enough room for the
   `ca. HH:MM` label while freeing the lower rail for waste collection.
+  In *normal* and *overloaded* content-pressure modes, the CLOCK slot is cleared and
+  only the date text remains; see DD-013 for the mode contract.
+- WEATHER is now a compact 72 px-tall strip (was 168 px) to leave room for the
+  information columns below.  The horizontal separator moves up to y=82 accordingly.
+- TRELLO moves to the upper-right column (x 524–788, y 86–196), directly below the
+  weather strip.  This frees the full bottom row for TRANSPORT.
 - WASTE moves into the rail so the main area can devote one flexible block to
   the multi-day calendar renderer.
+- TRANSPORT is now full-width in the lower row (width 548, x 244–792).
+  There is no longer a vertical divider or a Trello column in the same row.
 - TRANSPORT bottom edge is `y=470`, leaving a 10 px margin from the canvas bottom.
-- TRANSPORT starts at `y=340`, below the calendar block; it shares the lower row with TRELLO.
 - TRAIN_ICON top-left is at `(196, 334)`; TRANSPORT text starts at `x=244`.
-- A vertical divider at `x=534` (y=334–476) separates TRANSPORT from TRELLO.
-- TRELLO starts at `x=542`, right edge `x=792`, matching the right edge of all other main-area elements.
 - The gutter between RAIL and MAIN is 5 px (x=183–187); it is intentionally empty.
 - No visible dividers separate regions within the rail; whitespace alone defines zones.
+- MASCOT is shown only in *calm* content-pressure mode; see DD-013.
 
 ### Transport column layout (within TRANSPORT slot)
 
