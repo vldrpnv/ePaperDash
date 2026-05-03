@@ -144,7 +144,7 @@ The built-in `waste_collection_text` renderer accepts waste collection data and 
 - Multi-line content (both plain and rich) is emitted as nested `<tspan>` elements with `dy="1.2em"` for each subsequent line.
 - Renderer attributes from `DashboardTextBlock.attributes` are passed through verbatim to the target `<text>` element and overwrite any existing attributes with the same names.
 - When a `<text>` element in the SVG template carries both `data-bbox-width` and `data-bbox-height` attributes, the renderer calculates and sets `font-size` automatically so that all lines fit within the declared bounding box.  Any `font-size` set in `renderer_config` takes precedence over the auto-calculated value.
-- The example dashboard layout reserves the lower rail for `waste`, uses three adjacent lower-main `gcal_events_*` day slots for today + the next two days, and gives the timetable the full width beneath that calendar strip.
+- The example dashboard layout reserves the lower rail for `waste`, uses one lower-main `gcal_events` image block for the multi-day calendar, and gives the timetable the full width beneath that calendar block.
 
 ## Built-in plugin inventory
 
@@ -152,7 +152,7 @@ The built-in `waste_collection_text` renderer accepts waste collection data and 
 
 - `calendar`
 - `clock` — returns a `ClockData` with the current timezone-aware `render_time`; supports `source_config.timezone` (IANA timezone name, default `"UTC"`)
-- `google_calendar` — fetches events for a three-day window starting at the local calendar date derived from `source_config.timezone`; supports `source_config.calendar_url` (required), `source_config.timezone` (IANA timezone name, default `"UTC"`), `source_config.max_events` (integer, default `8`, applied across the three-day window), and optional title blacklist filtering through `source_config.blacklist_terms` (list of case-insensitive substrings) or `source_config.filter_word` (single substring shorthand); expands recurring events from `RRULE`/`RDATE` and excludes instances listed in `EXDATE`; maps network and HTTP errors to `SourceUnavailableError`
+- `google_calendar` — fetches events for a configurable local-day window starting at the local calendar date derived from `source_config.timezone`; supports `source_config.calendar_url` (required), `source_config.timezone` (IANA timezone name, default `"UTC"`), `source_config.days` (integer, default `3`), `source_config.max_events` (integer, default `max(16, days * 8)`, applied across the full window), and optional title blacklist filtering through `source_config.blacklist_terms` (list of case-insensitive substrings) or `source_config.filter_word` (single substring shorthand); expands recurring events from `RRULE`/`RDATE` and excludes instances listed in `EXDATE`; maps network and HTTP errors to `SourceUnavailableError`
 - `weather_forecast` with provider selection:
   - Open-Meteo (free hourly forecast)
   - MET Norway (free hourly forecast)
@@ -169,7 +169,7 @@ The built-in `waste_collection_text` renderer accepts waste collection data and 
 
 - `calendar_text`
 - `analog_clock` (self-contained PIL image: outer circle, tick marks, hour hand, outer-arc validity sector, optional range/approx label)
-- `google_calendar_text` — renders three day-labeled Google Calendar columns (`slot_0`, `slot_1`, `slot_2`) for today + the next two days; all-day events are prefixed with `•`; timed events are prefixed with the start time in `HH:MM` format; each day shows up to five events and falls back to `"No events"` when empty; standard text attributes (`font-size`, `font-family`, `font-weight`, `fill`) are forwarded from `renderer_config`
+- `google_calendar_text` — renders one self-contained PIL image block in the `gcal_events` slot for a configurable number of displayed days; all-day events are prefixed with `•`; timed events are prefixed with the start time in `HH:MM` format; the default allocation strategy keeps up to 16 visible events across the block, preserves days with 5 or fewer events when possible, rebalances overflow days proportionally, and appends `...` to the last visible line of days with hidden entries
 - `weather_text` (icon-based weather timeline, SVG text output)
 - `weather_block` (self-contained PIL image: today overview + 4-h blocks + tomorrow row)
 - `train_departures_text` — the station name header is a **bold** `RichLine`; each departure is rendered as a single timetable row (one `StyledLine`) containing the line label, departure time, and destination on the same line.  The line label is shown in **bold** for the first occurrence; subsequent departures sharing the same line label use space padding to keep the time column aligned.  On-time departures show the scheduled time without emphasis.  Delayed or early departures hide the scheduled time and show only the actual (realtime) time in **bold** — preventing two full HH:MM values from appearing side-by-side.  Cancelled departures show the scheduled time as strikethrough followed by "Cancelled" and the destination.  When `first-departure-font-size` is set in `renderer_config`, the first (next) departure row is rendered at that font size to give it visual emphasis over subsequent rows; if not set, `departure-font-size` applies to all rows.
@@ -207,7 +207,7 @@ The built-in `waste_collection_text` renderer accepts waste collection data and 
 - `train_departures_text` renders each departure as a single timetable row: line label (bold on first occurrence of each line, space-padded on subsequent same-line rows), one displayed time, destination — all on one line.
 - On-time departures display the scheduled time. Delayed or early departures hide the scheduled time and display only the actual time in **bold**. Cancelled departures display the scheduled time as strikethrough.
 - When `first-departure-font-size` is set, the first departure row is rendered at that font size for visual emphasis; subsequent rows use `departure-font-size`.
-- The layout slot bounding boxes in `layout.svg` must not overlap; the two-zone layout separates the left context rail (x 0–182) from the main content area (x 188–800), with the weather block in the main area top section (height 168 px), a three-column Google Calendar strip beneath it, waste collection in the lower rail, and the transport timetable spanning the full lower-main width.
+- The layout slot bounding boxes in `layout.svg` must not overlap; the two-zone layout separates the left context rail (x 0–182) from the main content area (x 188–800), with the weather block in the main area top section (height 168 px), one Google Calendar block beneath it, waste collection in the lower rail, and the transport timetable spanning the full lower-main width.
 - `analog_clock` renders an outer circle, optional tick marks, and an optional hour hand, with no minute hand and no second hand.
 - `analog_clock` `sector_style = "outer_arc"` (default) renders a highlighted thick arc along the clock rim spanning the validity window.
 - `analog_clock` `sector_style = "end_hand"` renders a single long hand pointing to the end of the validity window instead of an arc.
@@ -217,16 +217,17 @@ The built-in `waste_collection_text` renderer accepts waste collection data and 
 - `analog_clock` `label_mode = "approx"` renders a `ca. HH:MM` label below the clock face.
 - `analog_clock` `label_mode = "none"` renders no label; image height equals `size_px`.
 - `clock` source returns a timezone-aware `ClockData.render_time` using the configured IANA timezone (default `"UTC"`).
-- `google_calendar` source fetches events from an iCal URL (e.g. Google Calendar secret address) for today and the next two local calendar days, and returns up to `max_events` (default 8) `GoogleCalendarEvent` records across that three-day window.
+- `google_calendar` source fetches events from an iCal URL (e.g. Google Calendar secret address) for today and the next `days - 1` local calendar days, and returns up to `max_events` records across that display window.
 - `google_calendar` source normalises timed events to the configured timezone, records the local display date for each returned entry, and sorts by local event date with all-day events before timed events on the same date.
+- `google_calendar` source carries the configured display day count into the returned `GoogleCalendarEvents` value so renderers can lay out empty days as well as populated ones.
 - `google_calendar` source expands recurring iCal events from `RRULE` and `RDATE` for the target local date and omits occurrences excluded by `EXDATE`.
 - `google_calendar` source filters out events whose titles contain any configured blacklist term, matching case-insensitively.
 - `google_calendar` source maps HTTP errors, network errors, and iCal parse failures to `SourceUnavailableError`.
 - `google_calendar` source raises `ValueError` (fast-fail) when `calendar_url` is absent or `timezone` is not a valid IANA timezone name.
-- `google_calendar_text` renderer renders three day labels: `"<Weekday>, today"`, `"<Weekday>, tomorrow"`, and `"<Weekday>"` for the third day.
+- `google_calendar_text` renderer uses a single `gcal_events` block and derives day labels from the configured display window: `"<Weekday>, today"`, `"<Weekday>, tomorrow"`, then `"<Weekday>"` for later days.
 - `google_calendar_text` renderer formats all-day events as `"• Title"` and timed events as `"HH:MM Title"`.
-- `google_calendar_text` renderer shows up to five events per displayed day and produces `"No events"` for any displayed day whose event list is empty.
-- `google_calendar_text` renderer forwards `font-size`, `font-family`, `font-weight`, and `fill` attributes from `renderer_config` to the target SVG element.
+- `google_calendar_text` renderer uses a replaceable allocation strategy to fit a configurable day window into one block while preserving up to 16 visible events in total.
+- `google_calendar_text` renderer shows `"No events"` for displayed days whose event list is empty and appends `...` to the last visible line of days with hidden entries.
 - `ffb_waste_collection` resolves AWIDO customer `ffb` addresses in Eichenau from `address` or `street` + `house_number`, returns upcoming waste collection entries, and filters them when `waste_type` or `waste_types` is configured.
 - `waste_collection_text` renders only entries due within the configured look-ahead window relative to the source `reference_date`.
 - A collection due tomorrow is rendered in **bold** and at a larger font size than non-tomorrow waste lines.

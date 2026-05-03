@@ -147,6 +147,23 @@ END:VEVENT
 END:VCALENDAR
 """
 
+_ICAL_FOUR_DAY_WINDOW = b"""\
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Test//Test//EN
+BEGIN:VEVENT
+SUMMARY:Day 1
+DTSTART:20260429T090000Z
+DTEND:20260429T100000Z
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:Day 4
+DTSTART:20260502T090000Z
+DTEND:20260502T100000Z
+END:VEVENT
+END:VCALENDAR
+"""
+
 
 # ---------------------------------------------------------------------------
 # _allday_spans_today helper
@@ -264,6 +281,20 @@ def test_parse_window_events_includes_today_and_next_two_days() -> None:
     ]
 
 
+def test_parse_window_events_respects_configurable_day_count() -> None:
+    events = _parse_window_events(
+        _ICAL_FOUR_DAY_WINDOW,
+        _TODAY,
+        ZoneInfo("UTC"),
+        max_events=16,
+        days=4,
+    )
+    assert [(event.title, event.event_date) for event in events] == [
+        ("Day 1", date(2026, 4, 29)),
+        ("Day 4", date(2026, 5, 2)),
+    ]
+
+
 # ---------------------------------------------------------------------------
 # Source plugin: config validation
 # ---------------------------------------------------------------------------
@@ -305,16 +336,18 @@ class _FakePlugin(GoogleCalendarSourcePlugin):
         tz = _load_timezone(timezone_name)
         from datetime import datetime
         today = datetime.now(tz).date()
-        max_events = int(config.get("max_events", 8))
+        display_days = int(config.get("days", 3))
+        max_events = int(config.get("max_events", 16))
         blacklist_terms = _load_blacklist_terms(config)
-        events = _parse_today_events(
+        events = _parse_window_events(
             self._raw_ical,
             today,
             tz,
             max_events,
+            days=display_days,
             blacklist_terms=blacklist_terms,
         )  # type: ignore[arg-type]
-        return GoogleCalendarEvents(reference_date=today, events=tuple(events))
+        return GoogleCalendarEvents(reference_date=today, display_days=display_days, events=tuple(events))
 
 
 def test_google_calendar_source_maps_url_error_to_unavailable() -> None:
@@ -327,6 +360,12 @@ def test_google_calendar_source_returns_google_calendar_events_type() -> None:
     plugin = _FakePlugin(raw_ical=_ICAL_ONE_ALLDAY)
     result = plugin.fetch({"calendar_url": "http://example.com/cal.ics", "timezone": "UTC"})
     assert isinstance(result, GoogleCalendarEvents)
+
+
+def test_google_calendar_source_returns_configured_day_count() -> None:
+    plugin = _FakePlugin(raw_ical=_ICAL_FOUR_DAY_WINDOW)
+    result = plugin.fetch({"calendar_url": "http://example.com/cal.ics", "timezone": "UTC", "days": 4})
+    assert result.display_days == 4
 
 
 # ---------------------------------------------------------------------------

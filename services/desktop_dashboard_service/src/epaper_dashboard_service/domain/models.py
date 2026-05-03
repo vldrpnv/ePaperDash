@@ -109,9 +109,10 @@ class GoogleCalendarEvent:
 
 @dataclass(frozen=True)
 class GoogleCalendarEvents:
-    """Three-day Google Calendar events from a Google Calendar iCal feed."""
+    """Google Calendar events for a configurable multi-day display window."""
 
     reference_date: date
+    display_days: int
     events: tuple[GoogleCalendarEvent, ...]
 
 

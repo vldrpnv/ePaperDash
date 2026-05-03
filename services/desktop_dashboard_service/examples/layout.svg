@@ -15,8 +15,8 @@
        lower rail space for waste-collection lines. -->
   <image id="analog_clock" x="14" y="100" width="154" height="174" />
 
-  <!-- Waste collection moves into the lower rail so the main area can show
-       three side-by-side calendar day columns. -->
+  <!-- Waste collection moves into the lower rail so the main area can use one
+       flexible multi-day Google Calendar block. -->
   <text id="waste" x="8" y="304" font-family="Arial, sans-serif" fill="black"
         data-bbox-width="168" data-bbox-height="60" />
 
@@ -26,7 +26,7 @@
   <!-- ═══════════════ MAIN CONTENT AREA (x 188–800) ═══════════════ -->
 
   <!-- Weather block: primary visual anchor at the top of the main area.
-       Slightly shorter to free room for a three-day calendar strip plus trains.
+       Slightly shorter to free room for a flexible calendar block plus trains.
        Composited at runtime; x/y/width/height are read by the application service
        and injected into the weather_block renderer_config. -->
   <image id="weather_block" x="188" y="6" width="606" height="168" />
@@ -34,15 +34,9 @@
   <!-- Bold separator between weather and the lower information zone. -->
   <line x1="192" y1="182" x2="794" y2="182" stroke="#444" stroke-width="2" />
 
-  <!-- Three calendar day columns: today, tomorrow, and the following day. -->
-  <text id="gcal_events_0" x="196" y="198" font-family="Arial, sans-serif" fill="black"
-        data-bbox-width="188" data-bbox-height="124" />
-
-  <text id="gcal_events_1" x="400" y="198" font-family="Arial, sans-serif" fill="black"
-        data-bbox-width="188" data-bbox-height="124" />
-
-  <text id="gcal_events_2" x="604" y="198" font-family="Arial, sans-serif" fill="black"
-        data-bbox-width="188" data-bbox-height="124" />
+  <!-- Google Calendar: one renderer-managed image block that can rebalance
+       events across a configurable number of displayed days. -->
+  <image id="gcal_events" x="196" y="198" width="596" height="124" />
 
   <!-- Train icon: Phosphor Icons "train" (MIT), viewBox 0 0 256 256.
        Reduced and moved to the lower full-width timetable row. -->
@@ -50,7 +44,7 @@
         fill="black"
         d="M184 24H72a32 32 0 0 0-32 32v128a32 32 0 0 0 72 32h8l-14.4 19.2a8 8 0 1 0 12.8 9.6L100 216h56l21.6 28.8a8 8 0 1 0 12.8-9.6L176 216h8a32 32 0 0 0 32-32V56a32 32 0 0 0-32-32M56 120V80h64v40Zm80-40h64v40h-64ZM72 40h112a16 16 0 0 1 16 16v8H56v-8a16 16 0 0 1 16-16m112 160H72a16 16 0 0 1-16-16v-48h144v48a16 16 0 0 1-16 16m-88-28a12 12 0 1 1-12-12a12 12 0 0 1 12 12m88 0a12 12 0 1 1-12-12a12 12 0 0 1 12 12"/>
 
-  <!-- Trains: full-width timetable beneath the three-day calendar strip. -->
+  <!-- Trains: full-width timetable beneath the calendar block. -->
   <text id="trains" x="244" y="340" font-family="Arial, sans-serif" fill="black"
         data-bbox-width="548" data-bbox-height="130" />
 

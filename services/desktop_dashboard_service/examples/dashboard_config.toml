@@ -72,15 +72,18 @@ slot = "gcal_events"
 # See secrets.toml.tmpl for the expected format.
 calendar_url = "${gcal_url}"
 timezone = "Europe/Berlin"
-# Keep enough events to fill three days at up to five items per day.
-max_events = 15
+# Configurable display window; the renderer rebalances visible events across it.
+days = 3
+# Fetch more than the visible total so overflow indicators can remain accurate.
+max_events = 24
 # Optional title filters for hidden/private events:
 # blacklist_terms = ["Focus time", "School holiday"]
 # filter_word = "Private"
 [panels.renderer_config]
-font-family = "Arial, sans-serif"
 font-size = "14"
-fill = "black"
+header-font-size = "16"
+max-total-events = "16"
+soft-day-limit = "5"
 
 [[panels]]
 source = "ffb_waste_collection"

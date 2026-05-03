@@ -44,8 +44,7 @@ have one authoritative reference for the visual contract.
 │                 │                                                                 │
 │  CLOCK          │ ─── SEPARATOR (y=182, x=192–794) ───────────────────────────  │
 │  (14,100,154,174)│                                                                │
-│                 │  GCAL0 (196,198,188,124) GCAL1 (400,198,188,124)             │
-│                 │  GCAL2 (604,198,188,124)                                      │
+│                 │  GCAL BLOCK (196,198,596,124)                                 │
 │  WASTE          │  TRAINS (244,340,548,130)                                     │
 │  (8,304,168,60) │                                                                 │
 │                 │                                                                 │
@@ -67,9 +66,7 @@ box, not the glyph baseline.
 | `MASCOT`        | `image_pool` img   |  28 | 374 | 120 | 106 | tertiary   |
 | `WEATHER`       | `weather_block` img| 188 |   6 | 606 | 168 | primary    |
 | `SEPARATOR`     | `<line>` element   | 192 | 182 | 602 |   1 | structural |
-| `GCAL_0`        | `gcal_events_0`    | 196 | 198 | 188 | 124 | secondary  |
-| `GCAL_1`        | `gcal_events_1`    | 400 | 198 | 188 | 124 | secondary  |
-| `GCAL_2`        | `gcal_events_2`    | 604 | 198 | 188 | 124 | secondary  |
+| `GCAL`          | `gcal_events`      | 196 | 198 | 596 | 124 | secondary  |
 | `TRAIN_ICON`    | `<path>` element   | 196 | 334 |  44 |  54 | structural |
 | `TRANSPORT`     | `trains` text      | 244 | 340 | 548 | 130 | primary    |
 
@@ -77,10 +74,10 @@ Notes:
 - The DATE text baseline is `y=32`; the region box starts at `y=0` to include ascenders.
 - CLOCK is `size_px=140`; the 154×174 image slot leaves enough room for the
   `ca. HH:MM` label while freeing the lower rail for waste collection.
-- WASTE moves into the rail so the main area can devote one column to each
-  displayed calendar day.
+- WASTE moves into the rail so the main area can devote one flexible block to
+  the multi-day calendar renderer.
 - TRANSPORT bottom edge remains `y=470`, leaving a 10 px margin from the canvas bottom.
-- TRANSPORT starts at `y=340`, below the three-column calendar strip.
+- TRANSPORT starts at `y=340`, below the calendar block.
 - TRAIN_ICON top-left is at `(196, 334)`; TRANSPORT text starts at `x=244`.
 - The gutter between RAIL and MAIN is 5 px (x=183–187); it is intentionally empty.
 - No visible dividers separate regions within the rail; whitespace alone defines zones.
@@ -112,7 +109,7 @@ All sizes are nominal SVG/PIL pixel values at the 800×480 canvas resolution.
 | Weather — forecast block time     | WEATHER row 2 | 14        | 400    | normal  |
 | Weather — forecast block temp     | WEATHER row 2 | 18        | 700    | normal  |
 | Weather — tomorrow label          | WEATHER row 3 | 16        | 400    | normal  |
-| Google Calendar events            | GCAL_*        | 14        | 400    | normal  |
+| Google Calendar events            | GCAL          | 14        | 400    | normal  |
 | Waste collection — body           | WASTE         | 13        | 400    | normal  |
 | Waste collection — today/tomorrow | WASTE         | 15        | 700    | normal  |
 | Transport — station name          | TRANSPORT     | 20        | 700    | normal  |
@@ -237,8 +234,9 @@ uniform size; position in the list communicates priority.
    everything else is smaller.
 4. No debug-style full timestamps appear on the canvas in normal operation.
    The CLOCK `ca. HH:MM` label communicates freshness; no `last_update` slot exists.
-5. The calendar strip is split into three equal-width day columns so up to five
-   events per displayed day remain readable without shrinking the entire lower zone.
+5. The calendar block is rendered as one image slot so the renderer can rebalance
+   visible events across a configurable number of displayed days while keeping
+   overflow indicators aligned inside the block.
 6. The MASCOT is intentionally small and low (bottom-left corner) so it reads as a
    personality accent, not a focal element.
 

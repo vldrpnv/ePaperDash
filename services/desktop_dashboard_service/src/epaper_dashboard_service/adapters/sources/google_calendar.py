@@ -12,10 +12,13 @@ Configuration keys
 
 ``timezone`` (optional, default ``"UTC"``)
     IANA timezone name used to normalise event times and to determine which
-    events fall on the three-day display window starting at "today".
+    events fall on the configured display window starting at "today".
 
-``max_events`` (optional, default ``8``)
-    Maximum number of events to return across the three-day display window.
+    ``days`` (optional, default ``3``)
+        Number of local calendar days to fetch starting at "today".
+
+    ``max_events`` (optional, default ``max(16, days * 8)``)
+    Maximum number of events to return across the display window.
     Events are sorted by local event date, then by start time
     (all-day events appear before timed events that share the same date).
 
@@ -41,13 +44,13 @@ from epaper_dashboard_service.domain.ports import SourcePlugin
 
 _LOGGER = logging.getLogger(__name__)
 
-_DEFAULT_MAX_EVENTS = 8
+_DEFAULT_DISPLAY_DAYS = 3
 _DEFAULT_TIMEZONE = "UTC"
 _FETCH_TIMEOUT_SECONDS = 15
 
 
 class GoogleCalendarSourcePlugin(SourcePlugin):
-    """Fetch a three-day event window from an iCal feed URL."""
+    """Fetch a configurable multi-day event window from an iCal feed URL."""
 
     name = "google_calendar"
 
@@ -56,15 +59,17 @@ class GoogleCalendarSourcePlugin(SourcePlugin):
             raise ValueError(f"{self.name} source requires config value: calendar_url")
 
         calendar_url = str(config["calendar_url"])
-        max_events = int(config.get("max_events", _DEFAULT_MAX_EVENTS))
+        display_days = int(config.get("days", _DEFAULT_DISPLAY_DAYS))
+        max_events = int(config.get("max_events", _default_max_events(display_days)))
         timezone_name = str(config.get("timezone", _DEFAULT_TIMEZONE))
         blacklist_terms = _load_blacklist_terms(config)
         tz = _load_timezone(timezone_name)
 
         _LOGGER.debug(
-            "GoogleCalendar fetch start url=%r timezone=%s max_events=%d blacklist_terms=%d",
+            "GoogleCalendar fetch start url=%r timezone=%s days=%d max_events=%d blacklist_terms=%d",
             calendar_url,
             timezone_name,
+            display_days,
             max_events,
             len(blacklist_terms),
         )
@@ -85,7 +90,7 @@ class GoogleCalendarSourcePlugin(SourcePlugin):
                 today,
                 tz,
                 max_events,
-                days=3,
+                days=display_days,
                 blacklist_terms=blacklist_terms,
             )
         except Exception as parse_error:
@@ -93,8 +98,17 @@ class GoogleCalendarSourcePlugin(SourcePlugin):
                 f"{self.name} source unavailable: failed to parse iCal data"
             ) from parse_error
 
-        _LOGGER.info("GoogleCalendar result events=%d start_date=%s days=%d", len(events), today, 3)
-        return GoogleCalendarEvents(reference_date=today, events=tuple(events))
+        _LOGGER.info(
+            "GoogleCalendar result events=%d start_date=%s days=%d",
+            len(events),
+            today,
+            display_days,
+        )
+        return GoogleCalendarEvents(
+            reference_date=today,
+            display_days=display_days,
+            events=tuple(events),
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -118,6 +132,10 @@ def _parse_today_events(
         days=1,
         blacklist_terms=blacklist_terms,
     )
+
+
+def _default_max_events(display_days: int) -> int:
+    return max(16, display_days * 8)
 
 
 def _parse_window_events(
