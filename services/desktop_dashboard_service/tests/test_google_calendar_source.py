@@ -311,6 +311,12 @@ def test_google_calendar_source_raises_on_invalid_timezone() -> None:
         plugin.fetch({"calendar_url": "http://example.com/cal.ics", "timezone": "Not/ATimezone"})
 
 
+def test_google_calendar_source_requires_positive_day_count() -> None:
+    plugin = GoogleCalendarSourcePlugin()
+    with pytest.raises(ValueError, match="days >= 1"):
+        plugin.fetch({"calendar_url": "http://example.com/cal.ics", "days": 0})
+
+
 # ---------------------------------------------------------------------------
 # Source plugin: network error mapping
 # ---------------------------------------------------------------------------

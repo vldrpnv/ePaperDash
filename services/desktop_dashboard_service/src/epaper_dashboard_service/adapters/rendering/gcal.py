@@ -126,7 +126,7 @@ class GoogleCalendarTextRenderer(RendererPlugin):
         height = int(cfg.get("height", 124))
         total_capacity = int(cfg.get("max-total-events", _DEFAULT_TOTAL_CAPACITY))
         soft_day_limit = int(cfg.get("soft-day-limit", _DEFAULT_SOFT_DAY_LIMIT))
-        day_count = int(cfg.get("day-count", data.display_days or _DEFAULT_DISPLAY_DAYS))
+        day_count = int(cfg.get("day-count", data.display_days if data.display_days is not None else _DEFAULT_DISPLAY_DAYS))
         font_size = int(cfg.get("font-size", 14))
         header_font_size = int(cfg.get("header-font-size", font_size + 2))
         column_gap = int(cfg.get("column-gap", _DEFAULT_COLUMN_GAP))
@@ -215,7 +215,7 @@ def _draw_sections(
         lines = [_format_event(event) for event in section.visible_events]
         if section.hidden_count > 0:
             if lines:
-                lines[-1] = f"{lines[-1]} ..."
+                lines[-1] = _append_overflow_marker(lines[-1])
             else:
                 lines = ["..."]
         elif not lines:
@@ -301,3 +301,13 @@ def _truncate_text(
     while truncated and draw.textlength(f"{truncated}{ellipsis}", font=font) > max_width:
         truncated = truncated[:-1]
     return f"{truncated.rstrip()}{ellipsis}" if truncated else ellipsis
+
+
+def _append_overflow_marker(line: str) -> str:
+    """Append the overflow marker to the truncated entry itself.
+
+    This keeps the dots visually attached to the last visible event, matching the
+    requested "show there are more events than displayed" behavior inside a fixed
+    calendar column.  Empty overflowing days still render standalone ``...``.
+    """
+    return f"{line} ..."

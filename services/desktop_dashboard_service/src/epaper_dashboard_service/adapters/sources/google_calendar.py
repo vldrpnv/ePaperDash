@@ -17,7 +17,7 @@ Configuration keys
 ``days`` (optional, default ``3``)
     Number of local calendar days to fetch starting at "today".
 
-``max_events`` (optional, default ``max(16, days * 8)``; with the default ``days = 3``, this is ``max(16, 3 * 8) = 24``)
+``max_events`` (optional, default ``max(16, days * 8)``; with the default ``days = 3``, this is ``max(16, 24) = 24``)
     Maximum number of events to return across the display window.
     Events are sorted by local event date, then by start time
     (all-day events appear before timed events that share the same date).
@@ -59,7 +59,7 @@ class GoogleCalendarSourcePlugin(SourcePlugin):
             raise ValueError(f"{self.name} source requires config value: calendar_url")
 
         calendar_url = str(config["calendar_url"])
-        display_days = int(config.get("days", _DEFAULT_DISPLAY_DAYS))
+        display_days = _load_display_days(config)
         max_events = int(config.get("max_events", _default_max_events(display_days)))
         timezone_name = str(config.get("timezone", _DEFAULT_TIMEZONE))
         blacklist_terms = _load_blacklist_terms(config)
@@ -136,6 +136,13 @@ def _parse_today_events(
 
 def _default_max_events(display_days: int) -> int:
     return max(16, display_days * 8)
+
+
+def _load_display_days(config: dict[str, Any]) -> int:
+    display_days = int(config.get("days", _DEFAULT_DISPLAY_DAYS))
+    if display_days < 1:
+        raise ValueError(f"{GoogleCalendarSourcePlugin.name} source requires days >= 1")
+    return display_days
 
 
 def _parse_window_events(
