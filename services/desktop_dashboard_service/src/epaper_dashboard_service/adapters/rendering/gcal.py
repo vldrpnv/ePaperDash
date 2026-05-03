@@ -17,6 +17,9 @@ _DEFAULT_SOFT_DAY_LIMIT = 5
 _DEFAULT_TOTAL_CAPACITY = 16
 _DEFAULT_COLUMN_GAP = 12
 
+# Bundled fonts live under ``adapters/fonts/`` alongside the weather/clock
+# renderers.  If they are unavailable at runtime, ``_load_font`` falls back to
+# Pillow's default bitmap font so the calendar still renders.
 _FONTS_DIR = Path(__file__).parent.parent / "fonts"
 _DEFAULT_FONT = _FONTS_DIR / "DejaVuSans.ttf"
 _BOLD_FONT = _FONTS_DIR / "DejaVuSans-Bold.ttf"
