@@ -61,7 +61,7 @@ sector_style = "end_hand"
 show_hour_hand = "true"
 show_tick_marks = "false"
 show_face = "true"
-size_px = "154"
+size_px = "140"
 
 [[panels]]
 source = "google_calendar"
@@ -72,15 +72,18 @@ slot = "gcal_events"
 # See secrets.toml.tmpl for the expected format.
 calendar_url = "${gcal_url}"
 timezone = "Europe/Berlin"
-# Keep the calendar list short enough to leave readable space for waste below it.
-max_events = 5
+# Configurable display window; the renderer rebalances visible events across it.
+days = 3
+# Fetch more than the visible total so overflow indicators can remain accurate.
+max_events = 24
 # Optional title filters for hidden/private events:
 # blacklist_terms = ["Focus time", "School holiday"]
 # filter_word = "Private"
 [panels.renderer_config]
-font-family = "Arial, sans-serif"
-font-size = "19"
-fill = "black"
+font-size = "14"
+header-font-size = "16"
+max-total-events = "16"
+soft-day-limit = "5"
 
 [[panels]]
 source = "ffb_waste_collection"
@@ -98,8 +101,8 @@ waste_types = [
 ]
 [panels.renderer_config]
 font-family = "Arial, sans-serif"
-font-size = "16"
-tomorrow-font-size = "20"
+font-size = "13"
+tomorrow-font-size = "15"
 fill = "black"
 
 [[panels]]
@@ -112,11 +115,11 @@ limit = 5
 timezone = "Europe/Berlin"
 [panels.renderer_config]
 font-family = "Arial, sans-serif"
-font-size = "20"
+font-size = "16"
 fill = "black"
 show-line = "false"
-station-name-font-size = "26"
-departure-font-size = "20"
+station-name-font-size = "20"
+departure-font-size = "16"
 departure-break-dy = "1.4em"
 
 [[panels]]

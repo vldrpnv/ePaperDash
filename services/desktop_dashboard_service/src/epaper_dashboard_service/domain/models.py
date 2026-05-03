@@ -101,6 +101,7 @@ class GoogleCalendarEvent:
     """A single event fetched from a Google Calendar iCal feed."""
 
     title: str
+    event_date: date
     start_time: datetime | None  # None when the event is all-day
     end_time: datetime | None    # None when the event is all-day
     all_day: bool
@@ -108,8 +109,10 @@ class GoogleCalendarEvent:
 
 @dataclass(frozen=True)
 class GoogleCalendarEvents:
-    """Today's events from a Google Calendar iCal feed (up to max_events)."""
+    """Google Calendar events for a configurable multi-day display window."""
 
+    reference_date: date
+    display_days: int
     events: tuple[GoogleCalendarEvent, ...]
 
 

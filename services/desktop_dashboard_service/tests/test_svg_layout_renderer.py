@@ -211,15 +211,15 @@ def test_extract_text_slots_returns_empty_when_file_missing(tmp_path: Path) -> N
     assert extract_text_slots(tmp_path / "nonexistent.svg") == set()
 
 
-def test_example_layout_separates_calendar_waste_and_trains_slots() -> None:
+def test_example_layout_separates_calendar_block_waste_and_trains_slots() -> None:
     template = Path(__file__).resolve().parents[1] / "examples" / "layout.svg"
 
     root = ET.parse(template).getroot()
     bboxes = collect_slot_bboxes(root)
 
-    assert bboxes["gcal_events"] == (196.0, 248.0, 246.0, 132.0)
-    assert bboxes["waste"] == (196.0, 398.0, 246.0, 72.0)
-    assert bboxes["trains"] == (543.0, 248.0, 249.0, 222.0)
+    assert bboxes["gcal_events"] == (196.0, 198.0, 596.0, 124.0)
+    assert bboxes["waste"] == (8.0, 304.0, 168.0, 60.0)
+    assert bboxes["trains"] == (244.0, 340.0, 548.0, 130.0)
     assert check_slot_overlaps(bboxes) == []
 
 

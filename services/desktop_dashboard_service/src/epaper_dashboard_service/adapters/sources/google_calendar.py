@@ -12,10 +12,14 @@ Configuration keys
 
 ``timezone`` (optional, default ``"UTC"``)
     IANA timezone name used to normalise event times and to determine which
-    events fall on "today".
+    events fall on the configured display window starting at "today".
 
-``max_events`` (optional, default ``8``)
-    Maximum number of events to return.  Events are sorted by start time
+``days`` (optional, default ``3``)
+    Number of local calendar days to fetch starting at "today".
+
+``max_events`` (optional, default ``24`` when ``days`` is not set; in general ``max(16, days * 8)``)
+    Maximum number of events to return across the display window.
+    Events are sorted by local event date, then by start time
     (all-day events appear before timed events that share the same date).
 
 ``blacklist_terms`` (optional)
@@ -40,13 +44,13 @@ from epaper_dashboard_service.domain.ports import SourcePlugin
 
 _LOGGER = logging.getLogger(__name__)
 
-_DEFAULT_MAX_EVENTS = 8
+_DEFAULT_DISPLAY_DAYS = 3
 _DEFAULT_TIMEZONE = "UTC"
 _FETCH_TIMEOUT_SECONDS = 15
 
 
 class GoogleCalendarSourcePlugin(SourcePlugin):
-    """Fetch today's events from an iCal feed URL (e.g. Google Calendar secret address)."""
+    """Fetch a configurable multi-day event window from an iCal feed URL."""
 
     name = "google_calendar"
 
@@ -55,15 +59,17 @@ class GoogleCalendarSourcePlugin(SourcePlugin):
             raise ValueError(f"{self.name} source requires config value: calendar_url")
 
         calendar_url = str(config["calendar_url"])
-        max_events = int(config.get("max_events", _DEFAULT_MAX_EVENTS))
+        display_days = _load_display_days(config)
+        max_events = int(config.get("max_events", _default_max_events(display_days)))
         timezone_name = str(config.get("timezone", _DEFAULT_TIMEZONE))
         blacklist_terms = _load_blacklist_terms(config)
         tz = _load_timezone(timezone_name)
 
         _LOGGER.debug(
-            "GoogleCalendar fetch start url=%r timezone=%s max_events=%d blacklist_terms=%d",
+            "GoogleCalendar fetch start url=%r timezone=%s days=%d max_events=%d blacklist_terms=%d",
             calendar_url,
             timezone_name,
+            display_days,
             max_events,
             len(blacklist_terms),
         )
@@ -79,11 +85,12 @@ class GoogleCalendarSourcePlugin(SourcePlugin):
         )
 
         try:
-            events = _parse_today_events(
+            events = _parse_window_events(
                 raw_ical,
                 today,
                 tz,
                 max_events,
+                days=display_days,
                 blacklist_terms=blacklist_terms,
             )
         except Exception as parse_error:
@@ -91,8 +98,17 @@ class GoogleCalendarSourcePlugin(SourcePlugin):
                 f"{self.name} source unavailable: failed to parse iCal data"
             ) from parse_error
 
-        _LOGGER.info("GoogleCalendar result events_today=%d date=%s", len(events), today)
-        return GoogleCalendarEvents(events=tuple(events))
+        _LOGGER.info(
+            "GoogleCalendar result events=%d start_date=%s days=%d",
+            len(events),
+            today,
+            display_days,
+        )
+        return GoogleCalendarEvents(
+            reference_date=today,
+            display_days=display_days,
+            events=tuple(events),
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -108,6 +124,37 @@ def _parse_today_events(
     blacklist_terms: tuple[str, ...] = (),
 ) -> list[GoogleCalendarEvent]:
     """Parse iCal bytes and return events occurring on *today* (in *tz*)."""
+    return _parse_window_events(
+        raw_ical,
+        today,
+        tz,
+        max_events,
+        days=1,
+        blacklist_terms=blacklist_terms,
+    )
+
+
+def _default_max_events(display_days: int) -> int:
+    return max(16, display_days * 8)
+
+
+def _load_display_days(config: dict[str, Any]) -> int:
+    display_days = int(config.get("days", _DEFAULT_DISPLAY_DAYS))
+    if display_days < 1:
+        raise ValueError(f"{GoogleCalendarSourcePlugin.name} source requires days >= 1")
+    return display_days
+
+
+def _parse_window_events(
+    raw_ical: bytes,
+    start_day: date,
+    tz: ZoneInfo,
+    max_events: int,
+    *,
+    days: int,
+    blacklist_terms: tuple[str, ...] = (),
+) -> list[GoogleCalendarEvent]:
+    """Parse iCal bytes and return events occurring within the display window."""
     try:
         from icalendar import Calendar  # type: ignore[import-untyped]
     except ImportError as exc:
@@ -117,7 +164,7 @@ def _parse_today_events(
         ) from exc
 
     cal = Calendar.from_ical(raw_ical)
-    today_events: list[GoogleCalendarEvent] = []
+    window_events: list[GoogleCalendarEvent] = []
     total_vevents = 0
 
     for component in cal.walk():
@@ -125,25 +172,34 @@ def _parse_today_events(
             continue
 
         total_vevents += 1
-        today_events.extend(
-            _parse_vevent(
-                component,
-                today,
-                tz,
-                blacklist_terms=blacklist_terms,
+        for day_offset in range(days):
+            target_day = start_day + timedelta(days=day_offset)
+            window_events.extend(
+                _parse_vevent(
+                    component,
+                    target_day,
+                    tz,
+                    blacklist_terms=blacklist_terms,
+                )
             )
-        )
 
     _LOGGER.debug(
-        "GoogleCalendar iCal walk vevents_total=%d matched_today=%d date=%s",
+        "GoogleCalendar iCal walk vevents_total=%d matched=%d start_date=%s days=%d",
         total_vevents,
-        len(today_events),
-        today,
+        len(window_events),
+        start_day,
+        days,
     )
 
-    # Sort: all-day first (start_time is None), then by start_time ascending.
-    today_events.sort(key=lambda e: (e.start_time is not None, e.start_time or datetime.min.replace(tzinfo=timezone.utc)))
-    return today_events[:max_events]
+    # Sort: date first, then all-day first, then by start_time ascending.
+    window_events.sort(
+        key=lambda e: (
+            e.event_date,
+            e.start_time is not None,
+            e.start_time or datetime.min.replace(tzinfo=timezone.utc),
+        )
+    )
+    return window_events[:max_events]
 
 
 def _parse_vevent(
@@ -183,6 +239,7 @@ def _parse_vevent(
             return [
                 GoogleCalendarEvent(
                     title=summary,
+                    event_date=today,
                     start_time=None,
                     end_time=None,
                     all_day=True,
@@ -208,6 +265,7 @@ def _parse_vevent(
     matching_events = [
         GoogleCalendarEvent(
             title=summary,
+            event_date=today,
             start_time=occurrence,
             end_time=occurrence + duration_delta if duration_delta > timedelta() else None,
             all_day=False,
