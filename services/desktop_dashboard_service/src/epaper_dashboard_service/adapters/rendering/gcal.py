@@ -129,7 +129,7 @@ class GoogleCalendarTextRenderer(RendererPlugin):
         height = int(cfg.get("height", 124))
         total_capacity = int(cfg.get("max-total-events", _DEFAULT_TOTAL_CAPACITY))
         soft_day_limit = int(cfg.get("soft-day-limit", _DEFAULT_SOFT_DAY_LIMIT))
-        day_count = int(cfg.get("day-count", data.display_days if data.display_days is not None else _DEFAULT_DISPLAY_DAYS))
+        day_count = _resolve_day_count(data, cfg)
         font_size = int(cfg.get("font-size", 14))
         header_font_size = int(cfg.get("header-font-size", font_size + 2))
         column_gap = int(cfg.get("column-gap", _DEFAULT_COLUMN_GAP))
@@ -260,6 +260,13 @@ def _allocate_proportionally(counts: tuple[int, ...], total_capacity: int) -> tu
     return tuple(allocation)
 
 
+def _resolve_day_count(data: GoogleCalendarEvents, cfg: dict[str, object]) -> int:
+    configured_day_count = cfg.get("day-count")
+    if configured_day_count is not None:
+        return int(configured_day_count)
+    return data.display_days
+
+
 def _format_event(event: GoogleCalendarEvent) -> str:
     if event.all_day or event.start_time is None:
         return f"{_ALL_DAY_BULLET} {event.title}"
@@ -300,10 +307,18 @@ def _truncate_text(
         return text
 
     ellipsis = "..."
-    truncated = text
-    while truncated and draw.textlength(f"{truncated}{ellipsis}", font=font) > max_width:
-        truncated = truncated[:-1]
-    return f"{truncated.rstrip()}{ellipsis}" if truncated else ellipsis
+    low = 0
+    high = len(text)
+    best = ""
+    while low <= high:
+        mid = (low + high) // 2
+        candidate = f"{text[:mid].rstrip()}{ellipsis}" if mid > 0 else ellipsis
+        if draw.textlength(candidate, font=font) <= max_width:
+            best = candidate
+            low = mid + 1
+        else:
+            high = mid - 1
+    return best or ellipsis
 
 
 def _append_overflow_marker(line: str) -> str:
