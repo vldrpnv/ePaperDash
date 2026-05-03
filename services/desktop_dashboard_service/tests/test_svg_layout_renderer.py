@@ -212,11 +212,25 @@ def test_extract_text_slots_returns_empty_when_file_missing(tmp_path: Path) -> N
 
 
 def test_example_layout_separates_calendar_block_waste_and_trains_slots() -> None:
+    """The example layout SVG must use the updated stable region map.
+
+    Region contract (x, y, w, h):
+    - ``weather_block`` image: compact 72 px-tall strip at the top of the main area.
+    - ``trello`` text: upper-right column (x 524–788), above the calendar block,
+      separated from weather by 4 px.
+    - ``gcal_events`` image: full-width calendar block in the middle main area.
+    - ``waste`` text: lower left rail, unchanged.
+    - ``trains`` text: full-width timetable row at the bottom of the main area,
+      no longer sharing the row with a Trello column (width 548, not 280).
+    - No slots overlap.
+    """
     template = Path(__file__).resolve().parents[1] / "examples" / "layout.svg"
 
     root = ET.parse(template).getroot()
     bboxes = collect_slot_bboxes(root)
 
+    assert bboxes["weather_block"] == (188.0, 6.0, 604.0, 72.0)
+    assert bboxes["trello"] == (524.0, 86.0, 264.0, 110.0)
     assert bboxes["gcal_events"] == (196.0, 198.0, 596.0, 124.0)
     assert bboxes["waste"] == (8.0, 304.0, 168.0, 60.0)
     assert bboxes["trains"] == (244.0, 340.0, 548.0, 130.0)
