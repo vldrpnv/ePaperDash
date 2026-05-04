@@ -144,7 +144,7 @@ The built-in `waste_collection_text` renderer accepts waste collection data and 
 - Multi-line content (both plain and rich) is emitted as nested `<tspan>` elements with `dy="1.2em"` for each subsequent line.
 - Renderer attributes from `DashboardTextBlock.attributes` are passed through verbatim to the target `<text>` element and overwrite any existing attributes with the same names.
 - When a `<text>` element in the SVG template carries both `data-bbox-width` and `data-bbox-height` attributes, the renderer calculates and sets `font-size` automatically so that all lines fit within the declared bounding box.  Any `font-size` set in `renderer_config` takes precedence over the auto-calculated value.
-- The example dashboard layout reserves the lower rail for `waste`, uses one lower-main `gcal_events` image block for the multi-day calendar, and gives the timetable the full width beneath that calendar block.
+- The example dashboard layout reserves the lower rail for `waste`, uses one lower-main `gcal_events` image block for the multi-day calendar, and splits the lower main row into a `trains` slot (x 244–524, width 280 px) and a `trello` slot (x 542–792, width 250 px) separated by a vertical divider at x=534.
 
 ## Built-in plugin inventory
 
