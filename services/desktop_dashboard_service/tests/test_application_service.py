@@ -283,7 +283,7 @@ def test_application_service_adds_last_update_block_when_slot_exists(tmp_path: P
     configuration = DashboardConfiguration(
         layout=LayoutConfig(template=str(template), width=800, height=480),
         mqtt=MqttConfig(host="localhost", port=1883, topic="epaper/image"),
-        panels=(),
+        panels=tuple(),
     )
 
     service.generate(configuration)
@@ -317,7 +317,7 @@ def test_application_service_skips_last_update_when_slot_missing(tmp_path: Path)
     configuration = DashboardConfiguration(
         layout=LayoutConfig(template=str(template), width=800, height=480),
         mqtt=MqttConfig(host="localhost", port=1883, topic="epaper/image"),
-        panels=(),
+        panels=tuple(),
     )
 
     service.generate(configuration)

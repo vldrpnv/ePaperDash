@@ -13,6 +13,8 @@ from epaper_dashboard_service.domain.models import (
     DashboardConfiguration,
     DashboardTextBlock,
     ImagePlacement,
+    PanelDefinition,
+    ProfileDefinition,
 )
 from epaper_dashboard_service.domain.ports import DashboardPublisher, LayoutRenderer, RendererPlugin, SourcePlugin
 
@@ -47,19 +49,73 @@ class DashboardApplicationService:
         self._layout_renderer = layout_renderer
         self._publisher = publisher
 
+    def _get_active_profile(self, profiles: tuple[ProfileDefinition, ...], local_now: datetime) -> ProfileDefinition | None:
+        if not profiles:
+            return None
+
+        # Sort profiles by start time, descending (e.g., "21:00", "09:00", "00:00")
+        sorted_profiles = sorted(profiles, key=lambda p: p.start_time, reverse=True)
+        current_time_str = local_now.strftime("%H:%M")
+
+        # Find the first profile that started before or at the current time
+        for profile in sorted_profiles:
+            if current_time_str >= profile.start_time:
+                return profile
+
+        # If no profile started before the current time, wrap around to the latest one
+        # (e.g. current time is 01:00, profiles are 09:00 and 21:00, active is 21:00)
+        return sorted_profiles[0]
+
+    def _resolve_panels(self, configuration: DashboardConfiguration, local_now: datetime) -> tuple[tuple[PanelDefinition, ...], str | None]:
+        # Legacy case: direct panels configured
+        if not configuration.profiles:
+            return configuration.panels, configuration.layout.template
+
+        # Profile case
+        active_profile = self._get_active_profile(configuration.profiles, local_now)
+        if not active_profile:
+            return tuple(), None
+
+        sources_by_id = {s.id: s for s in configuration.sources}
+        panels = []
+
+        for profile_panel in active_profile.panels:
+            source_def = sources_by_id.get(profile_panel.source_id)
+            if not source_def:
+                raise ValueError(f"Profile '{active_profile.id}' references unknown source '{profile_panel.source_id}'")
+
+            panels.append(
+                PanelDefinition(
+                    source=source_def.source,
+                    renderer=profile_panel.renderer,
+                    slot=profile_panel.slot,
+                    source_config=source_def.source_config,
+                    renderer_config=profile_panel.renderer_config,
+                )
+            )
+
+        return tuple(panels), active_profile.template
+
     def generate(self, configuration: DashboardConfiguration) -> DashboardBuildResult:
         """Render the dashboard and return the result without publishing."""
         text_blocks: list[DashboardTextBlock] = []
         image_placements: list[ImagePlacement] = []
         cleared_slots: list[str] = []
-        template_path = Path(configuration.layout.template)
+
+        local_now = datetime.now().astimezone()
+
+        panels, template_path_str = self._resolve_panels(configuration, local_now)
+        if not template_path_str:
+            raise ValueError("No valid layout template could be resolved")
+
+        template_path = Path(template_path_str)
 
         # Read image-slot geometry declared in the SVG template.  These values are merged
         # into renderer_config so that image panels can be positioned purely from the SVG.
         svg_image_slots = extract_image_slots(template_path)
         svg_text_slots = extract_text_slots(template_path)
 
-        for panel in configuration.panels:
+        for panel in panels:
             # If the SVG defines geometry for this slot, merge it into renderer_config.
             # SVG geometry takes precedence over any matching keys in the TOML config.
             if panel.slot in svg_image_slots:
@@ -85,7 +141,6 @@ class DashboardApplicationService:
                     text_blocks.append(block)
 
         if "last_update" in svg_text_slots:
-            local_now = datetime.now().astimezone()
             timestamp = local_now.strftime("%Y-%m-%d %H:%M:%S %z")
             text_blocks.append(
                 DashboardTextBlock(

@@ -212,14 +212,14 @@ def test_extract_text_slots_returns_empty_when_file_missing(tmp_path: Path) -> N
 
 
 def test_example_layout_separates_calendar_block_waste_and_trains_slots() -> None:
-    template = Path(__file__).resolve().parents[1] / "examples" / "layout.svg"
+    template = Path(__file__).resolve().parents[1] / "examples" / "layout_daytime.svg"
 
     root = ET.parse(template).getroot()
     bboxes = collect_slot_bboxes(root)
 
     assert bboxes["gcal_events"] == (196.0, 198.0, 596.0, 124.0)
     assert bboxes["waste"] == (8.0, 304.0, 168.0, 60.0)
-    assert bboxes["trains"] == (244.0, 340.0, 548.0, 130.0)
+    assert bboxes["trains"] == (244.0, 340.0, 280.0, 130.0)
     assert check_slot_overlaps(bboxes) == []
 
 
