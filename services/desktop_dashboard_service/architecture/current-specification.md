@@ -188,6 +188,35 @@ The built-in `waste_collection_text` renderer accepts waste collection data and 
 - The published payload must remain compatible with the firmware bitmap contract.
 - MQTT publishing retries transient failures with bounded attempts before surfacing an error.
 
+## Content-pressure model
+
+The dashboard operates in one of three **display modes** — *calm*, *normal*, or
+*overloaded* — determined by a numeric content-pressure score computed from the
+information sources for the current render cycle.
+
+The score and mode selection are implemented as pure functions in
+`domain/content_pressure.py` (`calculate_content_pressure_score`,
+`select_display_mode`).  See `dd-0013-content-pressure-modes.md` for the full
+weight table, mode thresholds, and per-element display rules.
+
+- `calm` (score ≤ 5): decorative elements such as the analog clock and mascot are shown.
+- `normal` (6 ≤ score ≤ 12): clock and mascot slots are cleared; weather compact.
+- `overloaded` (score ≥ 13): minimum viable information; operational data only.
+
+The priority order the dashboard must respect under any content pressure is:
+
+1. Date
+2. Freshness time
+3. Today/tomorrow calendar
+4. Next train departures
+5. Weather risk
+6. Next waste collection
+7. Top Trello/task cards
+8. Later-week calendar summary
+9. Additional weather forecast detail
+10. Analog clock
+11. Mascot/decorative image
+
 ## Reliability and fault handling
 
 - Source unavailability is isolated at panel level; one unavailable source must not abort the full dashboard build.
@@ -214,7 +243,7 @@ The built-in `waste_collection_text` renderer accepts waste collection data and 
 - `train_departures_text` renders each departure as a single timetable row: line label (bold on first occurrence of each line, space-padded on subsequent same-line rows), one displayed time, destination — all on one line.
 - On-time departures display the scheduled time. Delayed or early departures hide the scheduled time and display only the actual time in **bold**. Cancelled departures display the scheduled time as strikethrough.
 - When `first-departure-font-size` is set, the first departure row is rendered at that font size for visual emphasis; subsequent rows use `departure-font-size`.
-- The layout slot bounding boxes in `layout.svg` must not overlap; the two-zone layout separates the left context rail (x 0–182) from the main content area (x 188–800), with the weather block in the main area top section (height 168 px), one Google Calendar block beneath it, waste collection in the lower rail, the transport timetable in the lower-main left portion (x 244–524, width 280 px), and the Trello board panel in the lower-main right portion (x 542–792, width 250 px) separated by a vertical divider at x=534.
+- The layout slot bounding boxes in `layout.svg` must not overlap; the two-zone layout separates the left context rail (x 0–182) from the main content area (x 188–800), with the weather block as a compact 72 px-tall strip at the top (x 188–792, y 6–78), a Trello top-tasks column in the upper-right of the main area (x 524–788, y 86–196), one Google Calendar block in the middle main area (x 196–792, y 198–322), waste collection in the lower rail (x 8–176, y 304–364), and the transport timetable spanning the full lower main area (x 244–792, y 340–470, width 548 px) with no sharing column.
 - `analog_clock` renders an outer circle, optional tick marks, and an optional hour hand, with no minute hand and no second hand.
 - `analog_clock` `sector_style = "outer_arc"` (default) renders a highlighted thick arc along the clock rim spanning the validity window.
 - `analog_clock` `sector_style = "end_hand"` renders a single long hand pointing to the end of the validity window instead of an arc.

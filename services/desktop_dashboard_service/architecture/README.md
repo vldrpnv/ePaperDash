@@ -25,3 +25,4 @@ This directory captures the current specification and the design decisions for `
 - `dd-0010-dashboard-layout-specification.md` — complete region map, typography scale, icon sizes, and train-row state grammar
 - `dd-0011-google-calendar-recurring-events-and-title-filters.md` — expand iCal recurrences and hide unwanted titles in the Google Calendar source
 - `dd-0012-ffb-waste-collection-source-and-renderer.md` — AWIDO-backed waste collection source and compact three-day renderer
+- `dd-0013-content-pressure-modes.md` — content-pressure score, display-mode thresholds, and per-element reduction rules
