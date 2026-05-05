@@ -212,7 +212,7 @@ def test_extract_text_slots_returns_empty_when_file_missing(tmp_path: Path) -> N
 
 
 def test_example_layout_separates_calendar_block_waste_and_trains_slots() -> None:
-    template = Path(__file__).resolve().parents[1] / "examples" / "layout.svg"
+    template = Path(__file__).resolve().parents[1] / "examples" / "layout_daytime.svg"
 
     root = ET.parse(template).getroot()
     bboxes = collect_slot_bboxes(root)

@@ -10,7 +10,10 @@ from epaper_dashboard_service.domain.models import (
     LayoutConfig,
     MqttConfig,
     PanelDefinition,
+    ProfileDefinition,
+    ProfilePanelDefinition,
     ServiceConfig,
+    SourceDefinition,
 )
 
 
@@ -34,15 +37,18 @@ def load_configuration(
     try:
         layout_section = raw["layout"]
         mqtt_section = raw["mqtt"]
-        panels_section = raw["panels"]
     except KeyError as error:
         raise ConfigurationError(f"Missing configuration section: {error.args[0]}") from error
 
+    template = layout_section.get("template")
+    if template:
+        template = _resolve_path(config_path, template)
+
     layout = LayoutConfig(
-        template=_resolve_path(config_path, layout_section["template"]),
         width=int(layout_section.get("width", 800)),
         height=int(layout_section.get("height", 480)),
         preview_output=_resolve_optional_path(config_path, layout_section.get("preview_output")),
+        template=template,
     )
     mqtt = MqttConfig(
         host=mqtt_section["host"],
@@ -56,6 +62,9 @@ def load_configuration(
         publish_retry_attempts=int(mqtt_section.get("publish_retry_attempts", 3)),
         publish_retry_delay_seconds=float(mqtt_section.get("publish_retry_delay_seconds", 1.0)),
     )
+
+    # Parse legacy 'panels' structure if it exists
+    panels_section = raw.get("panels", [])
     panels = tuple(
         PanelDefinition(
             source=panel["source"],
@@ -66,15 +75,54 @@ def load_configuration(
         )
         for panel in panels_section
     )
-    if not panels:
-        raise ConfigurationError("At least one panel must be configured")
+
+    # Parse new 'sources' structure if it exists
+    sources_section = raw.get("sources", [])
+    sources = tuple(
+        SourceDefinition(
+            id=source["id"],
+            source=source["source"],
+            source_config=dict(source.get("source_config", {})),
+        )
+        for source in sources_section
+    )
+
+    # Parse new 'profiles' structure if it exists
+    profiles_section = raw.get("profiles", [])
+    profiles = tuple(
+        ProfileDefinition(
+            id=profile["id"],
+            start_time=profile["start_time"],
+            template=_resolve_path(config_path, profile["template"]),
+            panels=tuple(
+                ProfilePanelDefinition(
+                    source_id=panel["source_id"],
+                    renderer=panel["renderer"],
+                    slot=panel["slot"],
+                    renderer_config=dict(panel.get("renderer_config", {})),
+                )
+                for panel in profile.get("panels", [])
+            )
+        )
+        for profile in profiles_section
+    )
+
+    if not panels and not profiles:
+        raise ConfigurationError("At least one legacy panel or one profile must be configured")
 
     service_section = raw.get("service", {})
     service = ServiceConfig(
         interval_seconds=int(service_section.get("interval_seconds", 300)),
     )
 
-    return DashboardConfiguration(layout=layout, mqtt=mqtt, panels=panels, service=service)
+    return DashboardConfiguration(
+        layout=layout,
+        mqtt=mqtt,
+        panels=panels,
+        sources=sources,
+        profiles=profiles,
+        service=service
+    )
 
 
 def _resolve_path(config_path: Path, candidate: str) -> str:

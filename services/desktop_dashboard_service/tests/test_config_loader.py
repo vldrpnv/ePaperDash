@@ -175,5 +175,6 @@ def test_example_dashboard_config_substitutes_secret_waste_address() -> None:
         },
     )
 
-    waste_panel = next(p for p in result.panels if p.slot == "waste")
-    assert waste_panel.source_config["address"] == "Ringstr. 12"
+    waste_source = next((s for s in result.sources if s.id == "src_waste"), None)
+    assert waste_source is not None
+    assert waste_source.source_config.get("address") == "Ringstr. 12"

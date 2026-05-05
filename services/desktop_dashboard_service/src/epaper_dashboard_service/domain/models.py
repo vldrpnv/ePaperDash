@@ -157,6 +157,29 @@ class TrelloCards:
 
 
 @dataclass(frozen=True)
+class SourceDefinition:
+    id: str
+    source: str
+    source_config: dict[str, Any]
+
+
+@dataclass(frozen=True)
+class ProfilePanelDefinition:
+    source_id: str
+    renderer: str
+    slot: str
+    renderer_config: dict[str, Any]
+
+
+@dataclass(frozen=True)
+class ProfileDefinition:
+    id: str
+    start_time: str  # e.g., "09:00"
+    template: str
+    panels: tuple[ProfilePanelDefinition, ...]
+
+
+@dataclass(frozen=True)
 class PanelDefinition:
     source: str
     renderer: str
@@ -167,10 +190,11 @@ class PanelDefinition:
 
 @dataclass(frozen=True)
 class LayoutConfig:
-    template: str
     width: int
     height: int
     preview_output: str | None = None
+    # For legacy configurations without profiles
+    template: str | None = None
 
 
 @dataclass(frozen=True)
@@ -198,5 +222,11 @@ class ServiceConfig:
 class DashboardConfiguration:
     layout: LayoutConfig
     mqtt: MqttConfig
-    panels: tuple[PanelDefinition, ...]
     service: ServiceConfig = field(default_factory=ServiceConfig)
+
+    # New profile-based configuration
+    sources: tuple[SourceDefinition, ...] = field(default_factory=tuple)
+    profiles: tuple[ProfileDefinition, ...] = field(default_factory=tuple)
+
+    # Legacy configuration
+    panels: tuple[PanelDefinition, ...] = field(default_factory=tuple)
