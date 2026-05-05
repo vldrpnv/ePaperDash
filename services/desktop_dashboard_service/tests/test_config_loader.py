@@ -170,8 +170,8 @@ def test_example_dashboard_config_substitutes_secret_waste_address() -> None:
         secrets={
             "gcal_url": "https://example.com/calendar.ics",
             "waste_address": "Ringstr. 12",
-            "trello_api_key": "dummy_key",
-            "trello_token": "dummy_token",
+            "trello_api_key": "example-trello-key",
+            "trello_token": "example-trello-token",
         },
     )
 
