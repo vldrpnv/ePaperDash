@@ -273,29 +273,31 @@ def _parse_datetime(value: str) -> datetime:
     return parsed
 
 
+_OPEN_METEO_CONDITION_MAPPING: dict[int, tuple[str, str]] = {
+    0: ("Sunny", "\u2600"),
+    1: ("Mainly clear", "\u2600"),
+    2: ("Partly cloudy", "\u26c5"),
+    3: ("Cloudy", "\u2601"),
+    45: ("Foggy", "\U0001f32b"),
+    48: ("Foggy", "\U0001f32b"),
+    51: ("Light drizzle", "\u2614"),
+    53: ("Drizzle", "\u2614"),
+    55: ("Dense drizzle", "\u2614"),
+    61: ("Rainy", "\u2614"),
+    63: ("Rainy", "\u2614"),
+    65: ("Heavy rain", "\u2614"),
+    71: ("Light snow", "\u2744"),
+    73: ("Snow", "\u2744"),
+    75: ("Heavy snow", "\u2744"),
+    80: ("Rain showers", "\u2614"),
+    81: ("Rain showers", "\u2614"),
+    82: ("Heavy showers", "\u2614"),
+    95: ("Thunderstorm", "\u26a1"),
+}
+
+
 def _map_open_meteo_condition(code: int) -> tuple[str, str]:
-    mapping: dict[int, tuple[str, str]] = {
-        0: ("Sunny", "\u2600"),
-        1: ("Mainly clear", "\u2600"),
-        2: ("Partly cloudy", "\u26c5"),
-        3: ("Cloudy", "\u2601"),
-        45: ("Foggy", "\U0001f32b"),
-        48: ("Foggy", "\U0001f32b"),
-        51: ("Light drizzle", "\u2614"),
-        53: ("Drizzle", "\u2614"),
-        55: ("Dense drizzle", "\u2614"),
-        61: ("Rainy", "\u2614"),
-        63: ("Rainy", "\u2614"),
-        65: ("Heavy rain", "\u2614"),
-        71: ("Light snow", "\u2744"),
-        73: ("Snow", "\u2744"),
-        75: ("Heavy snow", "\u2744"),
-        80: ("Rain showers", "\u2614"),
-        81: ("Rain showers", "\u2614"),
-        82: ("Heavy showers", "\u2614"),
-        95: ("Thunderstorm", "\u26a1"),
-    }
-    return mapping.get(code, ("Unknown", "\u2753"))
+    return _OPEN_METEO_CONDITION_MAPPING.get(code, ("Unknown", "\u2753"))
 
 
 def _map_met_no_symbol(symbol_code: str) -> tuple[str, str]:
@@ -333,18 +335,20 @@ def _map_openweather_condition(weather_id: int) -> tuple[str, str]:
     return "Unknown", "\u2753"
 
 
+_ICON_SEVERITY_MAPPING: dict[str, int] = {
+    "\u26a1": 5,
+    "\u2614": 4,
+    "\u2744": 4,
+    "\U0001f32b": 3,
+    "\u2601": 2,
+    "\u26c5": 1,
+    "\u2600": 0,
+    "\u2753": -1,
+}
+
+
 def _icon_severity(icon: str) -> int:
-    severity = {
-        "\u26a1": 5,
-        "\u2614": 4,
-        "\u2744": 4,
-        "\U0001f32b": 3,
-        "\u2601": 2,
-        "\u26c5": 1,
-        "\u2600": 0,
-        "\u2753": -1,
-    }
-    return severity.get(icon, -1)
+    return _ICON_SEVERITY_MAPPING.get(icon, -1)
 
 
 # Backward compatible alias for previous class name.
