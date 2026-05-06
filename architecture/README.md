@@ -15,3 +15,4 @@ This directory captures the repository-level architecture, current specification
 - `current-specification.md` — current repository-level system contract
 - `adr-0001-system-topology.md` — device/service separation and MQTT integration boundary
 - `adr-0002-firmware-refresh-cycle.md` — wake, poll, compare, refresh, and sleep device lifecycle
+- `adr-0003-config-editor-application.md` — web-based WYSIWYCG configuration editor
