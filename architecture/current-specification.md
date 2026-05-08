@@ -2,10 +2,11 @@
 
 ## Scope
 
-The repository currently contains two cooperating parts:
+The repository currently contains three cooperating parts:
 
 - firmware for the Seeed Studio XIAO 7.5" ePaper Panel
 - a Python desktop service that generates dashboard images and publishes them to MQTT
+- a Python web application (config editor) that provides a WYSIWYCG UI to manage the desktop service configuration
 
 ## System contract
 
