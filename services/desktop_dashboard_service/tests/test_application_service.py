@@ -324,3 +324,60 @@ def test_application_service_skips_last_update_when_slot_missing(tmp_path: Path)
 
     assert all(block.slot != "last_update" for block in layout_renderer.blocks)
 
+
+def test_application_service_skips_panel_when_slot_absent_from_svg(tmp_path: Path) -> None:
+    """A panel whose slot id is not declared in the SVG must be skipped entirely —
+    the source must not be fetched and no text block for that slot must reach the renderer."""
+    template = tmp_path / "layout.svg"
+    template.write_text(
+        """<svg xmlns="http://www.w3.org/2000/svg" width="800" height="480">
+          <rect width="800" height="480" fill="white" />
+          <text id="calendar" x="50" y="110" />
+        </svg>""",
+        encoding="utf-8",
+    )
+
+    fetch_calls: list[str] = []
+
+    class TrackingSource(SourcePlugin):
+        name = "tracking"
+
+        def fetch(self, config: dict[str, object]) -> object:
+            fetch_calls.append(str(config.get("value")))
+            return config["value"]
+
+    layout_renderer = FakeLayoutRenderer()
+    service = DashboardApplicationService(
+        registry=PluginRegistry(
+            sources=(FakeSource(), TrackingSource()),
+            renderers=(FakeRenderer(),),
+        ),
+        layout_renderer=layout_renderer,
+        publisher=FakePublisher(),
+    )
+    configuration = DashboardConfiguration(
+        layout=LayoutConfig(template=str(template), width=800, height=480),
+        mqtt=MqttConfig(host="localhost", port=1883, topic="epaper/image"),
+        panels=(
+            PanelDefinition(
+                source="calendar",
+                renderer="calendar_text",
+                slot="calendar",
+                source_config={"value": "Tuesday"},
+                renderer_config={},
+            ),
+            PanelDefinition(
+                source="tracking",
+                renderer="calendar_text",
+                slot="missing_slot",
+                source_config={"value": "should-not-appear"},
+                renderer_config={},
+            ),
+        ),
+    )
+
+    service.generate(configuration)
+
+    assert fetch_calls == [], "Source.fetch must not be called for a slot absent from the SVG"
+    assert all(block.slot != "missing_slot" for block in layout_renderer.blocks)
+

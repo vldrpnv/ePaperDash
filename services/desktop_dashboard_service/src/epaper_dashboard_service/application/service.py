@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import dataclasses
+import logging
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
+
+_log = logging.getLogger(__name__)
 
 from PIL import Image
 
@@ -116,6 +119,16 @@ class DashboardApplicationService:
         svg_text_slots = extract_text_slots(template_path)
 
         for panel in panels:
+            # Skip panels whose slot is not declared in the SVG template.
+            # When the template does not exist the slot collections are empty and
+            # we cannot determine valid slots, so we fall through without skipping.
+            if template_path.exists() and panel.slot not in svg_image_slots and panel.slot not in svg_text_slots:
+                _log.warning(
+                    "Slot %r is not declared in the SVG layout; panel '%s/%s' will not be rendered",
+                    panel.slot, panel.source, panel.renderer,
+                )
+                continue
+
             # If the SVG defines geometry for this slot, merge it into renderer_config.
             # SVG geometry takes precedence over any matching keys in the TOML config.
             if panel.slot in svg_image_slots:
