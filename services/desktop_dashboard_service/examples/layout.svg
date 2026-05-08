@@ -7,21 +7,23 @@
        y=32 places the baseline so the ascenders of the first line stay on-screen
        (top of text ≈ y − 0.75 × font-size ≈ 32 − 21 = 11 px).
        Explicit font-size in renderer_config takes precedence over auto-fit. -->
-  <text id="calendar" x="8" y="32" font-family="Arial, sans-serif" fill="black"
+  <path transform="translate(8,8) scale(0.08)" fill="black" d="M208,32H184V24a8,8,0,0,0-16,0v8H88V24a8,8,0,0,0-16,0v8H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V48A16,16,0,0,0,208,32ZM72,48v8a8,8,0,0,0,16,0V48h80v8a8,8,0,0,0,16,0V48h24V80H48V48ZM208,208H48V96H208V208Z"/>
+  <text id="calendar" x="8" y="44" font-family="Arial, sans-serif" fill="black"
         data-bbox-width="168" data-bbox-height="68" />
 
   <!-- Analog validity-window clock: secondary, quiet — communicates freshness only.
        size_px=140 in renderer_config keeps the label legible while freeing
        lower rail space for waste-collection lines. -->
-  <image id="analog_clock" x="14" y="100" width="154" height="174" />
+  <image id="analog_clock" x="14" y="114" width="154" height="160" />
 
   <!-- Waste collection moves into the lower rail so the main area can use one
        flexible multi-day Google Calendar block. -->
-  <text id="waste" x="8" y="304" font-family="Arial, sans-serif" fill="black"
+  <path transform="translate(8,276) scale(0.08)" fill="black" d="M216,48H176V40a24,24,0,0,0-24-24H104A24,24,0,0,0,80,40v8H40a8,8,0,0,0,0,16h8V208a16,16,0,0,0,16,16H192a16,16,0,0,0,16-16V64h8a8,8,0,0,0,0-16ZM96,40a8,8,0,0,1,8-8h48a8,8,0,0,1,8,8v8H96Zm96,168H64V64H192ZM112,104v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Zm48,0v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Z"/>
+  <text id="waste" x="8" y="316" font-family="Arial, sans-serif" fill="black"
         data-bbox-width="168" data-bbox-height="60" />
 
   <!-- Mascot / decorative image: reduced so it can share the lower rail. -->
-  <image id="image_pool" x="28" y="374" width="120" height="106" />
+  <image id="image_pool" x="28" y="380" width="120" height="100" />
 
   <!-- ═══════════════ MAIN CONTENT AREA (x 188–800) ═══════════════ -->
 
@@ -52,7 +54,8 @@
   <line x1="534" y1="334" x2="534" y2="476" stroke="#444" stroke-width="1" />
 
   <!-- Trello board: lower-right corner, lists cards grouped by column. -->
-  <text id="trello" x="542" y="340" font-family="Arial, sans-serif" fill="black"
+  <path transform="translate(542,312) scale(0.08)" fill="black" d="M224,128a8,8,0,0,1-8,8H128a8,8,0,0,1,0-16h88A8,8,0,0,1,224,128ZM128,72h88a8,8,0,0,0,0-16H128a8,8,0,0,0,0,16Zm88,112H128a8,8,0,0,0,0,16h88a8,8,0,0,0,0-16ZM82.34,42.34,56,68.69,45.66,58.34A8,8,0,0,0,34.34,69.66l16,16a8,8,0,0,0,11.32,0l32-32A8,8,0,0,0,82.34,42.34Zm0,64L56,132.69,45.66,122.34a8,8,0,0,0-11.32,11.32l16,16a8,8,0,0,0,11.32,0l32-32a8,8,0,0,0-11.32-11.32Zm0,64L56,196.69,45.66,186.34a8,8,0,0,0-11.32,11.32l16,16a8,8,0,0,0,11.32,0l32-32a8,8,0,0,0-11.32-11.32Z"/>
+  <text id="trello" x="542" y="352" font-family="Arial, sans-serif" fill="black"
         data-bbox-width="250" data-bbox-height="130" />
 
 </svg>
