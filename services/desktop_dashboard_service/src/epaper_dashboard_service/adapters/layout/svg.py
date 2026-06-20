@@ -10,7 +10,7 @@ from PIL import Image
 
 _log = logging.getLogger(__name__)
 
-from epaper_dashboard_service.domain.models import DashboardTextBlock, RichLine, StyledLine, TextSpan
+from epaper_dashboard_service.domain.models import DashboardTextBlock, RichLine, StyledLine
 from epaper_dashboard_service.domain.ports import LayoutRenderer
 
 
