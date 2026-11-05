@@ -36,12 +36,12 @@ To open the configuration editor, run `./run-config-editor.sh` and visit
 <http://localhost:8080>. The editor and publisher share the same dependencies
 and editable project checkout.
 
-On macOS, install Homebrew once, copy and fill in `secrets.toml`, then run
-`./scripts/install-macos-services.sh`. The installer adds `uv` and Mosquitto
-with Homebrew if needed, generates the broker config from
-`deploy/mosquitto.conf`, and starts both as user LaunchAgents. They start at
-login and restart if they exit; logs go to `~/Library/Logs/ePaperDash/` and
-retained messages stay under `~/services/mqtt_simple/data/`.
+On macOS, install Homebrew, uv, and Mosquitto first. With a broker config at
+`~/services/mqtt_simple/mosquitto.conf`, copy and fill in `secrets.toml`, then
+run `./scripts/install-macos-services.sh`. It defines and starts both as user
+LaunchAgents, which run at login and restart if they exit. Logs go to
+`~/Library/Logs/ePaperDash/`; retained messages stay under
+`~/services/mqtt_simple/data/`.
 
 For the firmware, copy `secrets.h.tmpl` to `secrets.h`, fill in the Wi-Fi and
 broker settings, then compile and upload `ePaperDash.ino` with the Arduino IDE.
