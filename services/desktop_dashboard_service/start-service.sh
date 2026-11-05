@@ -1,4 +1,6 @@
-python3 -m venv .venv
-. .venv/bin/activate
-pip install -e .[dev]
-epaper-dashboard-service --config examples/dashboard_config.toml --secrets examples/secrets.toml
+#!/bin/sh
+set -eu
+
+SERVICE_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+REPO_ROOT=$(CDPATH= cd -- "$SERVICE_DIR/../.." && pwd)
+exec "$REPO_ROOT/run-dashboard.sh" "$@"

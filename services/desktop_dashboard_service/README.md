@@ -26,20 +26,15 @@ Architecture notes, ADRs, and the current specification live in `architecture/`.
 ## Quick start
 
 ```bash
-python3 -m venv .venv
-. .venv/bin/activate
-pip install -e .[dev]
-epaper-dashboard-service --config examples/dashboard_config.toml --secrets examples/secrets.toml
+cd <ePaperDash checkout>
+cp secrets.example.toml secrets.toml
+# Fill in the values in secrets.toml.
+uv sync
+./run-dashboard.sh
 ```
 
-Using `uv` works as well:
-
-```bash
-uv venv
-. .venv/bin/activate
-uv pip install -e '.[dev]'
-uv run epaper-dashboard-service --config examples/dashboard_config.toml --secrets examples/secrets.toml
-```
+The repository root manages both Python applications in one locked `uv`
+environment. The legacy `start-service.sh` delegates to the root launcher.
 
 ## Configuration
 

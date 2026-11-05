@@ -13,6 +13,39 @@ publishes the 1-bit dashboard payload to MQTT for the firmware.
 
 Repository-level architecture notes now live in `architecture/`, and service-specific decisions live in `services/desktop_dashboard_service/architecture/`.
 
+## Run the dashboard application
+
+The repository contains both the MQTT image publisher and its configuration
+editor. Both use one Python environment managed by [uv](https://docs.astral.sh/uv/).
+Install uv and Python 3.12–3.14, then from the repository root run:
+
+```sh
+cp secrets.example.toml secrets.toml
+# Fill in the calendar URL and any other credentials in secrets.toml.
+uv sync
+./run-dashboard.sh
+```
+
+`secrets.toml` is local and gitignored. The publisher uses
+`services/desktop_dashboard_service/examples/dashboard_config.toml`; its MQTT
+host must point to the Mosquitto broker. When the broker is on this same
+computer, `localhost` is correct. The firmware's `secrets.h` must point to that
+same broker using an address reachable over Wi-Fi.
+
+To open the configuration editor, run `./run-config-editor.sh` and visit
+<http://localhost:8080>. The editor and publisher share the same dependencies
+and editable project checkout.
+
+On macOS, install Homebrew once, copy and fill in `secrets.toml`, then run
+`./scripts/install-macos-services.sh`. The installer adds `uv` and Mosquitto
+with Homebrew if needed, generates the broker config from
+`deploy/mosquitto.conf`, and starts both as user LaunchAgents. They start at
+login and restart if they exit; logs go to `~/Library/Logs/ePaperDash/` and
+retained messages stay under `~/services/mqtt_simple/data/`.
+
+For the firmware, copy `secrets.h.tmpl` to `secrets.h`, fill in the Wi-Fi and
+broker settings, then compile and upload `ePaperDash.ino` with the Arduino IDE.
+
 ---
 
 ## Hardware

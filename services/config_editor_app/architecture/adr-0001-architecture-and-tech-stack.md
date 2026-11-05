@@ -7,7 +7,7 @@ We need to build a web-based configuration editor for the ePaper dashboard syste
 ## Decision
 
 1. **Web Framework:** We will use [NiceGUI](https://nicegui.io/). NiceGUI allows us to build interactive web applications entirely in Python. It handles the client-server communication via WebSockets automatically, making live-updating previews straightforward to implement.
-2. **Preview Generation:** To provide a realistic preview, we will not attempt to rewrite the SVG parsing and rendering logic in the browser. Instead, the `config_editor_app` will declare a path dependency on `../desktop_dashboard_service`. It will instantiate the dashboard service's rendering pipeline (`cairosvg`, `Pillow`) in-memory to generate PNG images based on the temporary editor state, and serve those PNGs back to the NiceGUI frontend.
+2. **Preview Generation:** To provide a realistic preview, we will not attempt to rewrite the SVG parsing and rendering logic in the browser. Instead, the root `uv` project installs `config_editor_app` and `desktop_dashboard_service` together from their local source paths. The editor instantiates the dashboard service's rendering pipeline (`cairosvg`, `Pillow`) in-memory to generate PNG images based on the temporary editor state, and serves those PNGs back to the NiceGUI frontend.
 3. **Data Model:** The application state will mirror the structure of `dashboard_config.toml` (Layout, MQTT, Sources, Profiles). We will use `tomlkit` or the standard library `tomllib`/external `tomli` paired with a TOML writer to preserve comments and structure as much as possible when saving.
 
 ## Consequences

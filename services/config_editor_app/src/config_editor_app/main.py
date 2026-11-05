@@ -143,5 +143,9 @@ def index_page():
     render_ui()
 
 
-if __name__ in {"__main__", "__mp_main__"}:
+def main():
     ui.run(title="Dashboard Editor")
+
+
+if __name__ in {"__main__", "__mp_main__"}:
+    main()

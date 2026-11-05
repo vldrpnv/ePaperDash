@@ -1,0 +1,22 @@
+[project]
+name = "epaperdash"
+version = "0.1.0"
+description = "ePaperDash publisher and configuration editor"
+requires-python = ">=3.12,<3.15"
+dependencies = [
+  "epaper-dashboard-service",
+  "config-editor-app",
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.sources]
+epaper-dashboard-service = { path = "services/desktop_dashboard_service", editable = true }
+config-editor-app = { path = "services/config_editor_app", editable = true }
+
+[dependency-groups]
+dev = [
+  "pytest>=8.3.5,<10",
+  "ruff>=0.15.12,<1",
+]

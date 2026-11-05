@@ -12,12 +12,12 @@ We will introduce a new service located at `services/config_editor_app`.
 
 1. **Language & Stack:** The service will be written in Python to maintain consistency with the existing desktop service.
 2. **Framework:** We will use **NiceGUI**, a Python framework built on FastAPI and Vue.js, to provide the interactive web forms and preview display without writing custom JavaScript frontend code.
-3. **Live Preview:** The configuration editor will depend directly on the core rendering logic of `desktop_dashboard_service` (via a relative path dependency in Poetry). When configuration changes are made in the UI, the editor will use the `desktop_dashboard_service` SVG rasterizer to generate a real-time, realistic PNG preview for the browser.
-4. **Configuration Location:** The editor will locate the `dashboard_config.toml` file via the `DASHBOARD_CONFIG_PATH` environment variable.
+3. **Live Preview:** The configuration editor depends directly on the core rendering logic of `desktop_dashboard_service`. The root `uv` project installs both local packages together; the editor uses the service's SVG rasterizer to generate a real-time PNG preview for the browser.
+4. **Configuration Location:** The editor will locate `dashboard_config.toml` via the `DASHBOARD_CONFIG_PATH` environment variable, defaulting to the repository's example configuration.
 
 ## Consequences
 
 - **Positive:** Users can visually verify changes to dashboard layout sizes, texts, and active profiles before deploying them.
 - **Positive:** The editor remains entirely in the Python ecosystem.
 - **Negative:** `config_editor_app` is closely coupled to the internals of `desktop_dashboard_service`. If the internal domain models or rendering pipelines of the dashboard service change significantly, the editor application may need corresponding updates.
-- **Negative:** The project surface area increases, requiring two separate Python virtual environments to run both the service and the editor independently.
+- **Update:** The repository root now manages the editor and dashboard publisher in one locked `uv` environment, so they share a single Python installation.
