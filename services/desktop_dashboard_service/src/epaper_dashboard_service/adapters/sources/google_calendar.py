@@ -66,8 +66,7 @@ class GoogleCalendarSourcePlugin(SourcePlugin):
         tz = _load_timezone(timezone_name)
 
         _LOGGER.debug(
-            "GoogleCalendar fetch start url=%r timezone=%s days=%d max_events=%d blacklist_terms=%d",
-            calendar_url,
+            "GoogleCalendar fetch start timezone=%s days=%d max_events=%d blacklist_terms=%d",
             timezone_name,
             display_days,
             max_events,
@@ -78,10 +77,9 @@ class GoogleCalendarSourcePlugin(SourcePlugin):
         today = datetime.now(tz).date()
 
         _LOGGER.info(
-            "GoogleCalendar parsing feed date=%s timezone=%s url=%r",
+            "GoogleCalendar parsing feed date=%s timezone=%s",
             today,
             timezone_name,
-            calendar_url,
         )
 
         try:
@@ -463,19 +461,19 @@ def _fetch_ical(url: str) -> bytes:
     req = Request(url, headers={"User-Agent": "Mozilla/5.0 (compatible; ePaperDash/1.0)"})
     try:
         with urlopen(req, timeout=_FETCH_TIMEOUT_SECONDS) as response:
-            _LOGGER.debug("GoogleCalendar HTTP status=%s url=%s", getattr(response, "status", "?"), url)
+            _LOGGER.debug("GoogleCalendar HTTP status=%s", getattr(response, "status", "?"))
             return response.read()
     except HTTPError as error:
-        _LOGGER.error("GoogleCalendar HTTPError url=%s status=%s", url, error.code)
+        _LOGGER.error("GoogleCalendar HTTPError status=%s", error.code)
         raise SourceUnavailableError("google_calendar source unavailable") from error
     except URLError as error:
-        _LOGGER.error("GoogleCalendar URLError url=%s reason=%s", url, error.reason)
+        _LOGGER.error("GoogleCalendar URLError reason=%s", error.reason)
         raise SourceUnavailableError("google_calendar source unavailable") from error
     except TimeoutError as error:
-        _LOGGER.error("GoogleCalendar Timeout url=%s", url)
+        _LOGGER.error("GoogleCalendar Timeout")
         raise SourceUnavailableError("google_calendar source unavailable") from error
     except OSError as error:
-        _LOGGER.error("GoogleCalendar OSError url=%s reason=%s", url, error)
+        _LOGGER.error("GoogleCalendar OSError reason=%s", error)
         raise SourceUnavailableError("google_calendar source unavailable") from error
 
 
