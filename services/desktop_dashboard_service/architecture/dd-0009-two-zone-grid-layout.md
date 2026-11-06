@@ -4,6 +4,8 @@
 
 Accepted
 
+Reviewed 2026-11-06: retain as rationale for the existing example layout, not a mandatory grid for every screen or scheduled view. [Repository ADR-0004](../../../architecture/adr-0004-independent-screen-schedules-and-fixed-layout-views.md) allows different scheduled layouts while keeping blocks fixed within the active view. Later example-layout coordinates are recorded in DD-0010; this record preserves the earlier design rationale.
+
 ## Context
 
 The previous layout placed the date, clock, mascot, and weather/transport as free-positioned

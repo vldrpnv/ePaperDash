@@ -4,6 +4,8 @@
 
 Accepted
 
+Reviewed 2026-11-06: retained. In scheduled views, text fitting is local to the assigned block; it does not resize the block or move other blocks. Font limits and exact fitting behavior remain renderer/layout concerns.
+
 ## Context
 
 The train departures panel needs to display line labels in **bold** and cancelled departure times with a ~~strikethrough~~.

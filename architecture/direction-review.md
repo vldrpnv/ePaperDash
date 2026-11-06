@@ -4,6 +4,8 @@ Review date: 2026-11-06 · Repository: `35e99ca` · Discussion proposal, not an 
 
 Follow-up: [interview decisions and remaining questions](direction-interview.md) clarify the requirements below, particularly fixed layout blocks and source-owned cache freshness.
 
+The later [architecture decision revision](decision-revision.md) is the current target direction. This review preserves the initial proposals; its runtime workflow is not a decision to add background polling. The bitmap polarity mismatch noted below has since been corrected in the specifications, without changing code.
+
 The current design supports one dashboard per publisher process. Multiple dashboards would change data ownership, scheduling, configuration, preview, and delivery. The central question is **which decisions belong to a shared source, and which belong to each use of its data?**
 
 ## Decisions worth keeping—and questioning

@@ -4,6 +4,8 @@
 
 Accepted
 
+Reviewed 2026-11-06: scoped to the existing example layout. These coordinates and typography are not global constraints on future dashboards. Each scheduled view needs its own layout definition; data-dependent rendering stays inside its fixed blocks under [repository ADR-0004](../../../architecture/adr-0004-independent-screen-schedules-and-fixed-layout-views.md). This revision corrects the documented clock box and train-state descriptions to match the SVG, configuration, and renderer; it does not change their implementation.
+
 ## Context
 
 DD-009 introduced the two-zone layout and documented the grid constants and the
@@ -43,7 +45,7 @@ have one authoritative reference for the visual contract.
 │  (8,0,168,68)   │  (188,6,606,168)                                              │
 │                 │                                                                 │
 │  CLOCK          │ ─── SEPARATOR (y=182, x=192–794) ───────────────────────────  │
-│  (14,100,154,174)│                                                                │
+│  (14,114,154,160)│                                                                │
 │                 │  GCAL BLOCK (196,198,596,124)                                 │
 │  WASTE          │  TRAINS (244,340,280,130) │ TRELLO (542,340,250,130)         │
 │  (8,304,168,60) │                                                                 │
@@ -61,12 +63,12 @@ box, not the glyph baseline.
 | Region ID       | Slot / element     | x   | y   | w   | h   | Priority   |
 |-----------------|--------------------|-----|-----|-----|-----|------------|
 | `DATE`          | `calendar` text    |   8 |   0 | 168 |  68 | secondary  |
-| `CLOCK`         | `analog_clock` img |  14 | 100 | 154 | 174 | tertiary   |
+| `CLOCK`         | `analog_clock` img |  14 | 114 | 154 | 160 | tertiary   |
 | `WASTE`         | `waste` text       |   8 | 304 | 168 |  60 | secondary  |
 | `MASCOT`        | `image_pool` img   |  28 | 374 | 120 | 106 | tertiary   |
 | `WEATHER`       | `weather_block` img| 188 |   6 | 606 | 168 | primary    |
 | `SEPARATOR`     | `<line>` element   | 192 | 182 | 602 |   1 | structural |
-| `GCAL`          | `gcal_events`      | 196 | 198 | 596 | 124 | secondary  |
+| `GCAL`          | `gcal_events` img  | 196 | 198 | 596 | 124 | secondary  |
 | `TRAIN_ICON`    | `<path>` element   | 196 | 334 |  44 |  54 | structural |
 | `TRANSPORT`     | `trains` text      | 244 | 340 | 280 | 130 | primary    |
 | `TRELLO_DIVIDER`| `<line>` element   | 534 | 334 |   1 | 142 | structural |
@@ -74,7 +76,7 @@ box, not the glyph baseline.
 
 Notes:
 - The DATE text baseline is `y=32`; the region box starts at `y=0` to include ascenders.
-- CLOCK is `size_px=140`; the 154×174 image slot leaves enough room for the
+- CLOCK is `size_px=140`; the 154×160 image slot leaves enough room for the
   `ca. HH:MM` label while freeing the lower rail for waste collection.
 - WASTE moves into the rail so the main area can devote one flexible block to
   the multi-day calendar renderer.
@@ -163,80 +165,28 @@ All icons are monochrome (black on white) to remain valid in 1-bit output.
 
 ## Train row states
 
-Each departure row occupies one logical line within the TRANSPORT slot.  The
-NEXT departure (topmost row) receives larger type; subsequent rows are uniform.
+The current `train_departures_text` renderer emits one `StyledLine` per departure,
+after a bold station header. The bundled configuration uses a 20 px station
+header, 16 px departure rows, `show-line = false`, and no separate first-row size.
+A different view may configure `first-departure-font-size` without changing its
+block geometry.
 
-### Column notation
+| State | Displayed time | Destination | Bundled row size |
+| --- | --- | --- | --- |
+| next | Same time rules as other rows; first by position | Plain | 16 px |
+| on time / no realtime value | Scheduled `HH:MM`, plain | Plain | 16 px |
+| realtime time differs | Actual `HH:MM`, bold; scheduled time omitted | Plain | 16 px |
+| cancelled | Scheduled `HH:MM` struck through, followed by `Cancelled` | Plain | 16 px |
 
-`[LINE]` `[TIME]` `[DESTINATION]`
+Example delayed row: **18:03** München Hbf. No second full time or `+Xm` offset
+is emitted by the current renderer. A cancelled row strikes through the scheduled
+time, not the entire destination.
 
-### State: next
-
-All departures are rendered at the same size.  The first row in the list
-is implicitly "next" by position; no size or label distinction is applied.
-
-```
-[TIME 400 20px]    [DESTINATION 400 20px]
-
-17:42              München Hbf
-```
-
-- TIME: normal weight, 20 px
-- DESTINATION: normal weight, 20 px
-- Vertical spacing after first row: `dy="1.4em"`
-
-### State: normal
-
-```
-[TIME 400 20px]    [DESTINATION 400 20px]
-
-17:51              Grafrath
-```
-
-- Uniform 20 px, no line label.
-- Vertical spacing: `dy="1.2em"`.
-
-### State: delayed
-
-Scheduled time is struck through; bold offset indicator follows.
-
-```
-[~~TIME~~ 400 20px  +Xm 700 20px]    [DESTINATION 400 20px]
-
-~~17:59~~  +4m                        München Hbf
-```
-
-Rendered as a `RichLine` / `StyledLine`:
-- TIME span: `strikethrough=True`
-- `+Xm` span: `bold=True`
-- DESTINATION: plain span, normal weight
-- No second full time value is shown (prevents two `HH:MM` values from
-  appearing side-by-side and colliding).
-
-### State: cancelled
-
-All content is struck through to communicate the row is void.
-
-```
-[~~TIME~~]    [~~DESTINATION~~]
-
-~~18:03~~     ~~München Hbf~~
-```
-
-Rendered as a `RichLine` where every span has `strikethrough=True`.
-The entire row is visually subordinate; readers skip it instantly.
-
-### State summary table
-
-| State     | TIME style      | DESTINATION style | Size |
-|-----------|-----------------|-------------------|------|
-| next      | normal, plain   | normal, plain     | 20px |
-| normal    | normal, plain   | normal, plain     | 20px |
-| delayed   | normal, ~~s/t~~ + **+Xm** bold | normal, plain | 20px |
-| cancelled | ~~s/t~~         | ~~s/t~~           | 20px |
-
-Line designations are not shown (`show-line = false`).  All rows are
-uniform size; position in the list communicates priority.
+The renderer defaults to showing line labels; the bundled configuration explicitly
+hides them. When enabled, a line label is bold on its first occurrence and replaced
+with space padding on consecutive repetitions. The first departure uses
+`station-break-dy` (default `1.6em`); later departures use `departure-break-dy`
+(default `1.8em`, overridden to `1.4em` in the bundled configuration).
 
 ---
 
@@ -249,8 +199,9 @@ uniform size; position in the list communicates priority.
    line at `x=534` (stroke 1 px, `#444`, y=334–476) divides TRANSPORT from TRELLO.
    These are the only structural lines on the canvas.
 3. Priority is communicated by size and position, not labels or borders.
-   The WEATHER block and the NEXT departure are the two largest type elements;
-   everything else is smaller.
+   The WEATHER headline is the largest type element; the first departure is
+   identified by position and has the same 16 px size as subsequent departures
+   in the bundled configuration.
 4. No debug-style full timestamps appear on the canvas in normal operation.
    The CLOCK `ca. HH:MM` label communicates freshness; no `last_update` slot exists.
 5. The calendar block is rendered as one image slot so the renderer can rebalance
@@ -267,6 +218,6 @@ uniform size; position in the list communicates priority.
 |---------|-------------|
 | DD-009  | Introduced the two-zone grid and the rationale for removing the old free-positioned layout.  This record supersedes DD-009's typography and state notes and adds the complete reference tables. |
 | DD-007  | Defines `TextSpan`, `RichLine`, `StyledLine`, and `data-bbox-*` auto-sizing — the mechanisms used to implement the delayed and cancelled states above. |
-| DD-008  | Defines the MVG FIB v2 departure source that populates TRANSPORT. |
+| DD-008  | Defines the MVG BGW-PT v3 departure source that populates TRANSPORT. |
 | (Trello source) | The `trello_cards` source and `trello_cards_text` renderer populate TRELLO.  Credentials (`api_key`, `token`) are supplied via `secrets.toml` placeholders. |
 | ADR-0003 | SVG template as the layout format; the region IDs above are the SVG element `id` values used by that contract. |

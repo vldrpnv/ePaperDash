@@ -4,6 +4,8 @@
 
 Accepted
 
+Revised target scope, 2026-11-06: retain AWIDO normalization and bounded rendering. Under [ADR-0007](adr-0007-shared-source-instances-and-view-specific-rendering.md), view-specific waste-type selections and visible limits can differ when shared acquisition coverage supports them. Marking a collection done changes block content, not geometry or assignments. Completion-state storage, identity, reset rules, and input workflow remain open; the current provider source does not implement them. Availability follows target ADR-0008 when implemented.
+
 ## Context
 
 The dashboard needs a waste-collection panel for AWB Landkreis Fürstenfeldbruck

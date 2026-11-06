@@ -4,6 +4,8 @@
 
 Accepted
 
+Revised target scope, 2026-11-06: recurrence expansion and normalization remain source concerns. Under [ADR-0007](adr-0007-shared-source-instances-and-view-specific-rendering.md), display-day selection, visible limits, and presentation-only title exclusions may differ by view and must not truncate another consumer's shared data. Hard exclusions defining privacy/access scope remain source-side before sharing. The source filtering below is still the current implementation; migration and exact selection APIs remain open.
+
 ## Context
 
 The Google Calendar dashboard panel is fed from an iCal source where many

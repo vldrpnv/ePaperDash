@@ -4,6 +4,8 @@
 
 Accepted
 
+Reviewed 2026-11-06: retain normalized provider data and precision reporting. Under [ADR-0007](adr-0007-shared-source-instances-and-view-specific-rendering.md), display horizon, item limits, and display coarsening are use-specific. Source-level coarsening remains an acquisition constraint: consumers sharing it cannot recover discarded precision, so their coverage requirements must be compatible. This review did not revalidate provider availability or product terms.
+
 ## Context
 
 The weather panel currently depends on one provider and one-day summary fields. The dashboard now needs:

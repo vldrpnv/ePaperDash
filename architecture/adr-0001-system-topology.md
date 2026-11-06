@@ -4,6 +4,8 @@
 
 Accepted
 
+Reviewed 2026-11-06: retained. [ADR-0004](adr-0004-independent-screen-schedules-and-fixed-layout-views.md) extends the target to independently scheduled screen outputs. Source sharing and schedules stay service-side; the current bitmap format is preserved for existing devices.
+
 ## Context
 
 The target hardware is a low-power ePaper device with constrained memory and a fixed display format. Dashboard content may come from multiple external sources and may require richer rendering and image conversion than is practical on the device.

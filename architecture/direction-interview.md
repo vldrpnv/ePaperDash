@@ -1,6 +1,6 @@
 # Direction interview: decisions and open questions
 
-Date: 2026-11-06. Captures the user's answers following the [direction review](direction-review.md). These are requirements clarified in conversation; implementation and ADR changes remain to be designed.
+Date: 2026-11-06. Captures the user's answers following the [direction review](direction-review.md). The subsequent [decision revision](decision-revision.md) incorporates these requirements into target ADRs; implementation remains pending.
 
 ## Confirmed requirements
 

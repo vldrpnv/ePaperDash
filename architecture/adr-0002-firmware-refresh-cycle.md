@@ -4,6 +4,8 @@
 
 Accepted
 
+Reviewed 2026-11-06: retained. Device polling fetches a retained image; it does not control upstream source freshness. See [service ADR-0008](../services/desktop_dashboard_service/architecture/adr-0008-source-owned-freshness-and-failure-policy.md). The current raw image protocol does not communicate source expiry or prove that a newly published image has reached the display.
+
 ## Context
 
 ePaper hardware benefits from infrequent refreshes, and the device is expected to run with low power usage. The dashboard image is published as a retained MQTT message, so the latest state is available immediately after subscription.

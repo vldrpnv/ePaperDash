@@ -4,6 +4,8 @@
 
 Accepted
 
+Revised 2026-11-06: retain transient failure isolation. The blanket clearing behavior below remains implemented, but is replaced in the target by [ADR-0008](adr-0008-source-owned-freshness-and-failure-policy.md): unavailable by default, source-specific visibly stale fallback where configured, and fixed layout blocks in either case.
+
 ## Context
 
 The dashboard build composes multiple independent panels. In the current flow, a timeout or network error in any source plugin aborts the whole cycle, so no payload is produced. This makes the service brittle in real-world conditions where upstream APIs can intermittently fail.

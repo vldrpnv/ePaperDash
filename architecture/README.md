@@ -4,6 +4,8 @@ This directory captures the repository-level architecture, current specification
 
 ## How to reproduce the development flow
 
+For the revised direction, start with [decision-revision.md](decision-revision.md). It distinguishes confirmed target requirements from current behavior and unresolved choices. Existing specifications remain implementation descriptions.
+
 1. Read `current-specification.md` to understand the current externally visible behaviour and integration contracts.
 2. Read the ADRs in this directory to understand which design choices are intentional and should be preserved unless explicitly changed.
 3. If the change touches the desktop service, also read `services/desktop_dashboard_service/architecture/` before designing the change.
@@ -12,9 +14,11 @@ This directory captures the repository-level architecture, current specification
 
 ## Contents
 
+- `decision-revision.md` — interview-based revision, disposition of every existing decision, and open implementation choices
 - `direction-review.md` — discussion review of project direction, multiple dashboards, and workflows to reconsider
 - `direction-interview.md` — confirmed interview requirements and questions still open
 - `current-specification.md` — current repository-level system contract
 - `adr-0001-system-topology.md` — device/service separation and MQTT integration boundary
 - `adr-0002-firmware-refresh-cycle.md` — wake, poll, compare, refresh, and sleep device lifecycle
-- `adr-0003-config-editor-application.md` — web-based WYSIWYCG configuration editor
+- `adr-0003-config-editor-application.md` — editor architecture, current limitations, and faithful-preview target
+- `adr-0004-independent-screen-schedules-and-fixed-layout-views.md` — target independent screen schedules and fixed blocks within each selected view

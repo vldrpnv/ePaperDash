@@ -1,12 +1,14 @@
 # Current specification
 
+This describes the implemented system. The [decision revision](decision-revision.md) and its linked target ADRs describe the next architecture; they are not implemented behavior.
+
 ## Scope
 
 The repository currently contains three cooperating parts:
 
 - firmware for the Seeed Studio XIAO 7.5" ePaper Panel
 - a Python desktop service that generates dashboard images and publishes them to MQTT
-- a Python web application (config editor) that provides a WYSIWYCG UI to manage the desktop service configuration
+- a Python web application (config editor) with basic configuration editing and a placeholder SVG preview
 
 ## System contract
 
@@ -14,7 +16,7 @@ The repository currently contains three cooperating parts:
 - The payload is packed in row-major order: rows are encoded top-to-bottom, and within each row pixels are encoded left-to-right.
 - Each byte encodes 8 horizontal pixels; the leftmost pixel in the group is stored in the most-significant bit and the rightmost pixel in the least-significant bit.
 - The payload size is fixed at 48,000 bytes, with no per-row padding (`800 / 8 = 100` bytes per row, `100 × 480 = 48,000` bytes total).
-- Bit value `0` is rendered as black and `1` as white.
+- Bit value `1` is rendered as black and `0` as white. The service encoder inverts Pillow mode `1` bytes; this corrects the previous documentation polarity without changing the payload.
 - The desktop service is responsible for producing payloads that match that exact packing and rendering contract.
 
 ## Firmware behaviour
@@ -48,6 +50,14 @@ The desktop service:
 The desktop service retries transient MQTT broker publish failures with bounded attempts per cycle and continues running after failed publish cycles.
 
 When a panel source is unavailable, the desktop service clears that panel's text slot so no stale block is rendered in the published image.
+
+## Current implementation boundaries
+
+- The publisher loads one configuration at startup, with one layout, panel list, and MQTT output. It has no screen/view scheduler or automatic configuration reload.
+- Every panel invokes its configured source plugin separately. There is no shared source-instance/cache contract in the current application model.
+- The editor's source/profile scaffolding does not add those capabilities to the runtime loader. Its preview uses dummy text and saves the configuration file while refreshing.
+- The encoder requires 800×480 even though layout width and height are configurable.
+- Source-owned caching, view-specific data selection, independent screen schedules, and explicit unavailable/stale rendering are target requirements recorded in the new ADRs.
 
 ## Configuration surfaces
 

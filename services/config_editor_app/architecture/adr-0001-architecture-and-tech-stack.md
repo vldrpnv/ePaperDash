@@ -1,17 +1,30 @@
-# ADR 0001: Architecture and Tech Stack
+# ADR-0001: Retain NiceGUI and align editing with the shared runtime model
 
-## Context
+## Status
 
-We need to build a web-based configuration editor for the ePaper dashboard system. It needs to provide a WYSIWYCG experience, meaning users can edit configuration values (like layout sources, text fields, or icons) and instantly see a realistic rendering of what the display will look like. The constraint is to remain entirely within the Python ecosystem.
+Python/NiceGUI stack retained. Architecture scope revised 2026-11-06. Target editing and preview capabilities below are not implemented. Workflow choices remain proposed where identified.
 
-## Decision
+## Current implementation
 
-1. **Web Framework:** We will use [NiceGUI](https://nicegui.io/). NiceGUI allows us to build interactive web applications entirely in Python. It handles the client-server communication via WebSockets automatically, making live-updating previews straightforward to implement.
-2. **Preview Generation:** To provide a realistic preview, we will not attempt to rewrite the SVG parsing and rendering logic in the browser. Instead, the root `uv` project installs `config_editor_app` and `desktop_dashboard_service` together from their local source paths. The editor instantiates the dashboard service's rendering pipeline (`cairosvg`, `Pillow`) in-memory to generate PNG images based on the temporary editor state, and serves those PNGs back to the NiceGUI frontend.
-3. **Data Model:** The application state will mirror the structure of `dashboard_config.toml` (Layout, MQTT, Sources, Profiles). We will use `tomlkit` or the standard library `tomllib`/external `tomli` paired with a TOML writer to preserve comments and structure as much as possible when saving.
+- The root `uv` environment installs the editor and dashboard packages together.
+- `ConfigManager` reads and writes TOML with `tomlkit`.
+- The UI edits basic layout/MQTT fields and lists panel, source, and profile entries where present. Shared sources and profiles are not supported by the current runtime configuration loader.
+- Preview uses the service's SVG rasterizer but dummy text in place of actual plugin output. It is not a faithful dashboard preview.
+- Refreshing the preview saves the file. The running publisher does not reload that file automatically.
+
+## Revised target decision
+
+Follow [repository ADR-0003](../../../architecture/adr-0003-config-editor-application.md) and [ADR-0004](../../../architecture/adr-0004-independent-screen-schedules-and-fixed-layout-views.md):
+
+1. Retain NiceGUI and Python code reuse; no frontend-stack change is required by the interview.
+2. Represent source instances separately from views, block selection/rendering, and independently scheduled screens. Do not mirror the legacy panel-owned source model as the target domain model.
+3. Use the production composition/rendering path for faithful preview, with an explicitly selected screen/view, schedule time, and data inputs. Make unavailable/stale results visible without changing block geometry.
+4. Keep source freshness ownership in the source layer. Preview/render code must not invent new acquisition times or override source TTL based on the selected screen.
+
+## Proposed implementation work
+
+A stable rendering entry point, recorded/fixture data for deterministic previews, isolated drafts, validation, and explicit activation/reload are candidates for closing current gaps. Exact API, draft persistence, live-fetch behavior, activation, and rollback have not been selected. This record does not claim the user approved those workflows during the interview.
 
 ## Consequences
 
-- **Positive:** True WYSIWYCG realistic preview since the actual service rendering code is used.
-- **Positive:** Fast development speed without needing a separate frontend build pipeline (Node.js/npm).
-- **Negative:** Generating PNGs on the server for every keystroke or slider change might be resource-intensive; we may need to introduce debouncing on input fields that trigger a re-render.
+Sharing the rasterizer alone is insufficient for WYSIWYCG fidelity. The editor and runtime must use the same interpretation of schedules, source references, selections, renderers, and availability states. Comment-preserving TOML editing remains useful, but the next schema and migration behavior need their own decision before implementation.

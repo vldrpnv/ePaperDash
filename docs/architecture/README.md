@@ -2,6 +2,8 @@
 
 This directory captures the current architectural and technical design decisions for `ePaperDash` as reflected by the current codebase.
 
+Start with the [2026-11-06 architecture decision revision](../../architecture/decision-revision.md) for the interview-based target and disposition of all existing decisions. The firmware choices indexed here are retained; screen schedules and source freshness remain service-side. The revision does not implement the target runtime.
+
 ## Structure
 
 - `adr/`: long-lived architectural decisions that shape the system.

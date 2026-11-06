@@ -4,6 +4,8 @@
 
 Accepted
 
+Reviewed 2026-11-06: provider integration retained without external API revalidation. For the target, use [ADR-0007](adr-0007-shared-source-instances-and-view-specific-rendering.md) for station/query coverage and view-specific limits, and [ADR-0008](adr-0008-source-owned-freshness-and-failure-policy.md) for explicitly marked cached fallback. A fallback duration has not been chosen. The existing filename is historical; the decision body describes BGW-PT v3.
+
 ## Context
 
 A new `mvg_departures` panel type needs real-time S-Bahn and MVV departure information for stations in the Munich metropolitan area.  The requirement is to show scheduled time, actual time (or cancelled status), and the line label for each upcoming departure at a user-configured station.
@@ -37,5 +39,5 @@ Configuration keys: `station_name` (required), `limit` (default 5), `offset_minu
 ## Consequences
 
 - No API key or registration step is required for operators.
-- Because the API is unofficial, it may change without notice.  Network failures and unexpected response shapes are surfaced as runtime errors that cause the service to skip the cycle (per DD-005).
+- Because the API is unofficial, it may change without notice. Transient acquisition failures are mapped to `SourceUnavailableError` and isolated by the current panel-failure contract (ADR-0004); target fallback follows ADR-0008.
 - Only the Munich MVG/MVV network is covered; different cities require a different source plugin.

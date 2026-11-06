@@ -4,6 +4,8 @@
 
 Accepted
 
+Reviewed 2026-11-06: retained as the organization direction. [ADR-0007](adr-0007-shared-source-instances-and-view-specific-rendering.md) and [ADR-0008](adr-0008-source-owned-freshness-and-failure-policy.md) add shared source identity and freshness responsibilities. Existing application imports of SVG adapter helpers and Pillow-dependent domain models mean dependency isolation is not fully enforced today; this revision does not claim otherwise.
+
 ## Context
 
 The service combines configuration loading, third-party data acquisition, layout rendering, image encoding, and MQTT publishing. Those responsibilities will grow as more dashboard panels are added.

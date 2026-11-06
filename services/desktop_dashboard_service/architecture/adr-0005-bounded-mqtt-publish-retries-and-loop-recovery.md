@@ -4,6 +4,8 @@
 
 Accepted
 
+Reviewed 2026-11-06: retained. Multiple outputs will need bounded retries and failure handling that lets other outputs continue; the current single-output loop does not implement this. Composition/publish triggers and the mechanism for coordinating outputs remain open in [the revision](../../../architecture/decision-revision.md).
+
 ## Context
 
 The service publishes one retained dashboard payload per cycle. A transient broker outage currently raises an exception from the MQTT adapter and stops the CLI loop, which makes the service unavailable until restarted.

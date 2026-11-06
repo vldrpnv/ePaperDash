@@ -1,5 +1,9 @@
 # Current specification
 
+This is the implemented single-output service contract. See the [decision revision](../../../architecture/decision-revision.md) for the target and migration boundaries. Named shared source instances, independent screen schedules, and source-owned cache/fallback results are not implemented by the current configuration model.
+
+The runtime reads configuration once at startup and fetches through each panel. The encoder remains fixed at 800×480. The editor currently previews dummy text through the SVG rasterizer; it does not execute this full source/rendering pipeline or activate changes in a running publisher.
+
 ## Purpose
 
 The desktop dashboard service generates dashboard images for the firmware, using pluggable data sources and renderers, then publishes the result to MQTT.
@@ -185,6 +189,7 @@ The built-in `waste_collection_text` renderer accepts waste collection data and 
 ## Output contract
 
 - The rendered image is converted to Pillow mode `1` before MQTT publishing.
+- The encoder requires 800×480 and inverts the Pillow bytes: the resulting 48,000-byte payload is row-major, MSB-first, with `1` black and `0` white.
 - The published payload must remain compatible with the firmware bitmap contract.
 - MQTT publishing retries transient failures with bounded attempts before surfacing an error.
 
@@ -197,6 +202,8 @@ The built-in `waste_collection_text` renderer accepts waste collection data and 
 - Non-transient configuration or wiring errors (for example unknown plugin, renderer type mismatch, invalid required source configuration) still fail fast.
 
 ## Acceptance criteria
+
+The example-layout geometry and typography criteria below apply to the bundled layout, not every future scheduled view. The target keeps geometry/assignments fixed within each active view and allows schedules to select a different view; this behavior still needs implementation.
 
 - If a panel source raises `SourceUnavailableError`, the service still renders and encodes the dashboard with remaining panels.
 - Slots bound to unavailable sources are rendered as empty text (no visible stale block content).

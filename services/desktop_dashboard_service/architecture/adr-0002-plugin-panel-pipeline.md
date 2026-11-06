@@ -4,6 +4,8 @@
 
 Accepted
 
+Revised 2026-11-06: the panel-owned acquisition/configuration model below still describes the implementation, but is replaced in the target by [ADR-0007](adr-0007-shared-source-instances-and-view-specific-rendering.md). Keep plugin separation and compatibility checks. Target block assignments reference shared source instances and carry use-specific selection/rendering settings.
+
 ## Context
 
 The dashboard needs to combine heterogeneous data sources while keeping panel-specific configuration explicit and replaceable.
