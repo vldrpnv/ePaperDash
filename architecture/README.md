@@ -12,6 +12,8 @@ This directory captures the repository-level architecture, current specification
 
 ## Contents
 
+- `direction-review.md` — discussion review of project direction, multiple dashboards, and workflows to reconsider
+- `direction-interview.md` — confirmed interview requirements and questions still open
 - `current-specification.md` — current repository-level system contract
 - `adr-0001-system-topology.md` — device/service separation and MQTT integration boundary
 - `adr-0002-firmware-refresh-cycle.md` — wake, poll, compare, refresh, and sleep device lifecycle
